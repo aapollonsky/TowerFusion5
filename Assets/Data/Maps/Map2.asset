@@ -12,13 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 187cf7d1b39941dda6eed6d9cafce8b4, type: 3}
   m_Name: Map2
   m_EditorClassIdentifier: 
-  mapName: 
+  mapName: Map2
   description: 
-  mapPreview: {fileID: 0}
-  pathPoints: []
+  mapPreview: {fileID: 21300000, guid: 0d801a40567d04e9f815c52c04992cc8, type: 3}
+  pathPoints:
+  - {x: -3, y: -3, z: 0}
+  - {x: 0, y: 0, z: 0}
+  - {x: 3, y: 3, z: 0}
   pathWidth: 1
   towerPositions: []
-  waves: []
+  waves:
+  - {fileID: 11400000, guid: 0951a873f39e542a6a66e9a40225e1e6, type: 2}
   maxTowers: 10
-  enemySpawnPoint: {x: 0, y: 0, z: 0}
-  enemyEndPoint: {x: 0, y: 0, z: 0}
+  enemySpawnPoint: {x: -6, y: 1, z: 0}
+  enemyEndPoint: {x: 6, y: -1, z: 0}
