@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 187cf7d1b39941dda6eed6d9cafce8b4, type: 3}
+  m_Name: Map1
+  m_EditorClassIdentifier: 
+  mapName: Map1
+  description: 
+  mapPreview: {fileID: 0}
+  pathPoints:
+  - {x: -5, y: 2, z: 0}
+  - {x: 0, y: -3, z: 0}
+  - {x: 6, y: 1, z: 0}
+  pathWidth: 1
+  towerPositions: []
+  waves:
+  - {fileID: 11400000, guid: 0951a873f39e542a6a66e9a40225e1e6, type: 2}
+  maxTowers: 10
+  enemySpawnPoint: {x: -7, y: 0, z: 0}
+  enemyEndPoint: {x: 7, y: 0, z: 0}
