@@ -240,9 +240,31 @@ namespace TowerFusion
         /// </summary>
         private bool CanPlaceTowerAt(Vector3 position)
         {
-            // Check if position is valid on the map
-            if (!MapManager.Instance?.CanPlaceTowerAt(position) == true)
+            // Check if MapManager exists and whether the map allows placement at this position
+            if (MapManager.Instance == null)
+            {
+                Debug.LogWarning("CanPlaceTowerAt: MapManager.Instance is null");
                 return false;
+            }
+
+            bool mapAllows = MapManager.Instance.CanPlaceTowerAt(position);
+            if (!mapAllows)
+            {
+                // Helpful debug: show nearest allowed position and count of configured positions
+                var map = MapManager.Instance.CurrentMap;
+                if (map != null)
+                {
+                    int configured = map.towerPositions != null ? map.towerPositions.Count : 0;
+                    Vector3 nearest = map.GetClosestTowerPosition(position);
+                    Debug.Log($"Cannot place tower: map disallows at {position}. Nearest allowed position: {nearest}. Configured positions: {configured}");
+                }
+                else
+                {
+                    Debug.Log("Cannot place tower: CurrentMap is null on MapManager");
+                }
+
+                return false;
+            }
             
             // Check if there's already a tower at this position
             foreach (Tower tower in activeTowers)

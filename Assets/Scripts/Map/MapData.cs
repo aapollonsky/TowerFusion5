@@ -45,11 +45,16 @@ namespace TowerFusion
         /// </summary>
         public bool IsValidTowerPosition(Vector3 position, float tolerance = 0.5f)
         {
+            // If no specific tower positions are configured, allow placement anywhere
+            if (towerPositions == null || towerPositions.Count == 0)
+                return true;
+
             foreach (Vector3 towerPos in towerPositions)
             {
                 if (Vector3.Distance(position, towerPos) <= tolerance)
                     return true;
             }
+
             return false;
         }
         
