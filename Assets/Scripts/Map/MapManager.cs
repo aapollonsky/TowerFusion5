@@ -8,10 +8,13 @@ namespace TowerFusion
     public class MapManager : MonoBehaviour
     {
         [Header("Map Configuration")]
-        [SerializeField] private MapData currentMap;
+    [SerializeField] private MapData currentMap;
+    [SerializeField] private MapLibrary mapLibrary;
         [SerializeField] private LineRenderer pathRenderer;
         [SerializeField] private Transform towerPositionsParent;
         [SerializeField] private GameObject towerPositionMarkerPrefab;
+    [SerializeField] private SpriteRenderer mapSpriteRenderer;
+    [SerializeField] private bool useMapSprite = true;
         
         // Singleton instance
         public static MapManager Instance { get; private set; }
@@ -33,6 +36,13 @@ namespace TowerFusion
         
         private void Start()
         {
+            // If no current map assigned, try to auto-load from MapLibrary
+            if (currentMap == null && mapLibrary != null && mapLibrary.maps != null && mapLibrary.maps.Count > 0)
+            {
+                Debug.Log("MapManager: No Current Map assigned, auto-loading first map from MapLibrary.");
+                currentMap = mapLibrary.maps[0];
+            }
+
             InitializeMap();
         }
         
@@ -43,10 +53,21 @@ namespace TowerFusion
         {
             if (currentMap == null)
             {
-                Debug.LogError("No map data assigned to MapManager!");
+                Debug.LogError("No map data assigned to MapManager! Assign a MapData or MapLibrary with maps.");
                 return;
             }
-            
+            // Set map sprite preview if requested
+            if (useMapSprite && mapSpriteRenderer != null)
+            {
+                mapSpriteRenderer.sprite = currentMap.mapPreview;
+            }
+
+            // If using a map sprite, hide the LineRenderer path so the sprite's path isn't covered.
+            if (pathRenderer != null)
+            {
+                pathRenderer.enabled = !useMapSprite;
+            }
+
             SetupPath();
             SetupTowerPositions();
             
@@ -63,9 +84,91 @@ namespace TowerFusion
                 Debug.LogError("Cannot load null map data!");
                 return;
             }
-            
+            ClearCurrentMapVisuals();
             currentMap = newMap;
             InitializeMap();
+        }
+
+        /// <summary>
+        /// Load map by index from the MapLibrary
+        /// </summary>
+        public void LoadMapByIndex(int index)
+        {
+            if (mapLibrary == null)
+            {
+                Debug.LogError("MapLibrary is not assigned to MapManager");
+                return;
+            }
+
+            MapData m = mapLibrary.GetMap(index);
+            if (m == null)
+            {
+                Debug.LogError($"No map at index {index} in MapLibrary");
+                return;
+            }
+
+            LoadMap(m);
+        }
+
+        /// <summary>
+        /// Load map by name from the MapLibrary
+        /// </summary>
+        public void LoadMapByName(string name)
+        {
+            if (mapLibrary == null)
+            {
+                Debug.LogError("MapLibrary is not assigned to MapManager");
+                return;
+            }
+
+            MapData m = mapLibrary.GetMapByName(name);
+            if (m == null)
+            {
+                Debug.LogError($"No map named {name} in MapLibrary");
+                return;
+            }
+
+            LoadMap(m);
+        }
+
+        /// <summary>
+        /// Load next map in the MapLibrary (wraps around)
+        /// </summary>
+        public void LoadNextMap()
+        {
+            if (mapLibrary == null || mapLibrary.maps == null || mapLibrary.maps.Count == 0)
+            {
+                Debug.LogError("MapLibrary is not configured or empty");
+                return;
+            }
+
+            int currentIndex = mapLibrary.GetIndex(currentMap);
+            int nextIndex = (currentIndex + 1) % mapLibrary.maps.Count;
+            LoadMapByIndex(nextIndex);
+        }
+
+        private void ClearCurrentMapVisuals()
+        {
+            // Clear LineRenderer
+            if (pathRenderer != null)
+            {
+                pathRenderer.positionCount = 0;
+            }
+
+            // Clear tower markers
+            if (towerPositionsParent != null)
+            {
+                foreach (Transform child in towerPositionsParent)
+                {
+                    DestroyImmediate(child.gameObject);
+                }
+            }
+
+            // Clear sprite
+            if (mapSpriteRenderer != null)
+            {
+                mapSpriteRenderer.sprite = null;
+            }
         }
         
         /// <summary>

@@ -10,19 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 187cf7d1b39941dda6eed6d9cafce8b4, type: 3}
-  m_Name: Map1
+  m_Name: Map2
   m_EditorClassIdentifier: 
-  mapName: Map1
+  mapName: 
   description: 
-  mapPreview: {fileID: 21300000, guid: 09409b8ebac8c4305bc918b2d8663c68, type: 3}
-  pathPoints:
-  - {x: -5, y: 2, z: 0}
-  - {x: 0, y: -3, z: 0}
-  - {x: 6, y: 1, z: 0}
+  mapPreview: {fileID: 0}
+  pathPoints: []
   pathWidth: 1
   towerPositions: []
-  waves:
-  - {fileID: 11400000, guid: 0951a873f39e542a6a66e9a40225e1e6, type: 2}
+  waves: []
   maxTowers: 10
-  enemySpawnPoint: {x: -7, y: 0, z: 0}
-  enemyEndPoint: {x: 7, y: 0, z: 0}
+  enemySpawnPoint: {x: 0, y: 0, z: 0}
+  enemyEndPoint: {x: 0, y: 0, z: 0}

@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="Assets/Scripts/Enemy/EnemyData.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerData.cs" />
+    <Compile Include="Assets/Scripts/Map/MapLibrary.cs" />
     <Compile Include="Assets/Scripts/Game/GameUI.cs" />
     <Compile Include="Assets/Scripts/Enemy/EnemyManager.cs" />
     <Compile Include="Assets/Scripts/Wave/WaveManager.cs" />
