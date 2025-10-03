@@ -21,6 +21,8 @@ namespace TowerFusion
         
         // Properties
         public MapData CurrentMap => currentMap;
+    // Expose MapLibrary for read-only access to other systems
+    public MapLibrary MapLibrary => mapLibrary;
         
         private void Awake()
         {

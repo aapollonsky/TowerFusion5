@@ -74,11 +74,13 @@
     <Compile Include="Assets/Scripts/Game/GameManager.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerButton.cs" />
     <Compile Include="Assets/Scripts/Map/MapData.cs" />
+    <Compile Include="Assets/Scripts/UI/MapLaunchBridge.cs" />
     <Compile Include="Assets/Scripts/Wave/WaveData.cs" />
     <Compile Include="Assets/Scripts/Tower/Tower.cs" />
     <Compile Include="Assets/Scripts/Tower/Projectile.cs" />
     <Compile Include="Assets/Scripts/Map/MapManager.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerManager.cs" />
+    <Compile Include="Assets/Scripts/UI/MapSelectionUI.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/Scripts/TowerFusion.Scripts.asmdef" />
