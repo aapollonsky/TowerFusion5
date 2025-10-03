@@ -127,7 +127,12 @@ namespace TowerFusion
         public void StartPlacingTower(TowerData towerData)
         {
             if (towerData == null)
+            {
+                Debug.LogWarning("StartPlacingTower: towerData is null");
                 return;
+            }
+            
+            Debug.Log($"StartPlacingTower called for {towerData.towerName}. Current towers: {activeTowers.Count}");
             
             // Check if player has enough gold
             if (!GameManager.Instance || GameManager.Instance.CurrentGold < towerData.buildCost)
@@ -192,6 +197,8 @@ namespace TowerFusion
         {
             Vector3 placementPosition = GetValidPlacementPosition(position);
             
+            Debug.Log($"TryPlaceTower: Attempting to place tower at {placementPosition}. Current tower count: {activeTowers.Count}");
+            
             if (!CanPlaceTowerAt(placementPosition))
             {
                 Debug.Log("Cannot place tower at this location!");
@@ -214,7 +221,7 @@ namespace TowerFusion
                 RegisterTower(tower);
                 OnTowerPlaced?.Invoke(tower);
                 
-                Debug.Log($"Tower placed: {towerToBuild.towerName} at {placementPosition}");
+                Debug.Log($"Tower placed: {towerToBuild.towerName} at {placementPosition}. New tower count: {activeTowers.Count}");
             }
             
             // End placement mode
@@ -247,11 +254,18 @@ namespace TowerFusion
                 return false;
             }
 
+            // Check if we've reached the maximum number of towers
+            var map = MapManager.Instance.CurrentMap;
+            if (map != null && activeTowers.Count >= map.maxTowers)
+            {
+                Debug.Log($"Cannot place tower: Maximum towers reached ({activeTowers.Count}/{map.maxTowers})");
+                return false;
+            }
+
             bool mapAllows = MapManager.Instance.CanPlaceTowerAt(position);
             if (!mapAllows)
             {
                 // Helpful debug: show nearest allowed position and count of configured positions
-                var map = MapManager.Instance.CurrentMap;
                 if (map != null)
                 {
                     int configured = map.towerPositions != null ? map.towerPositions.Count : 0;

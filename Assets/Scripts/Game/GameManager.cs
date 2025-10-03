@@ -9,7 +9,7 @@ namespace TowerFusion
     {
         [Header("Game Settings")]
         public int startingHealth = 20;
-        public int startingGold = 100;
+        public int startingGold = 1000;
         
         [Header("Current Game State")]
         [SerializeField] private int currentHealth;

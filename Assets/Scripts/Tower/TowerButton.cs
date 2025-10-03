@@ -80,7 +80,16 @@ namespace TowerFusion.UI
             bool canAfford = GameManager.Instance != null && 
                            GameManager.Instance.CurrentGold >= towerData.buildCost;
             
+            bool wasInteractable = button.interactable;
             button.interactable = canAfford;
+            
+            // Debug when button state changes
+            if (wasInteractable != canAfford)
+            {
+                Debug.Log($"TowerButton ({towerData.towerName}): Button interactable changed to {canAfford}. " +
+                         $"Gold: {(GameManager.Instance != null ? GameManager.Instance.CurrentGold : 0)}, " +
+                         $"Cost: {towerData.buildCost}");
+            }
         }
         
         /// <summary>
@@ -89,8 +98,12 @@ namespace TowerFusion.UI
         private void BuildTower()
         {
             if (towerData == null)
+            {
+                Debug.LogWarning("TowerButton: towerData is null");
                 return;
+            }
             
+            Debug.Log($"TowerButton: BuildTower clicked for {towerData.towerName}");
             TowerManager.Instance?.StartPlacingTower(towerData);
         }
     }
