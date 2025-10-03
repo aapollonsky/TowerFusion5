@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   towerName: BasicTower
   description: 
-  towerSprite: {fileID: 21300000, guid: 452badd0d63a04721921a0e36635cfa4, type: 3}
+  towerSprite: {fileID: 21300000, guid: 285374b89cd464137a17019f7ffa06eb, type: 3}
   buildCost: 50
   damage: 25
   attackRange: 3
@@ -38,3 +38,22 @@ MonoBehaviour:
   upgrades: []
   towerColor: {r: 1, g: 1, b: 1, a: 1}
   scale: {x: 1, y: 1, z: 1}
+  useRotationSprites: 1
+  rotationSprites:
+  - {fileID: 21300000, guid: 285374b89cd464137a17019f7ffa06eb, type: 3}
+  - {fileID: 21300000, guid: 285374b89cd464137a17019f7ffa06eb, type: 3}
+  - {fileID: 21300000, guid: 22f8fd3afda4346d8a4b0e79d380fd34, type: 3}
+  - {fileID: 21300000, guid: 22f8fd3afda4346d8a4b0e79d380fd34, type: 3}
+  - {fileID: 21300000, guid: e7a98e3dd05714310b77b98adbd3faf5, type: 3}
+  - {fileID: 21300000, guid: e7a98e3dd05714310b77b98adbd3faf5, type: 3}
+  - {fileID: 21300000, guid: da04f8a53b91642809a996892590a0c2, type: 3}
+  - {fileID: 21300000, guid: da04f8a53b91642809a996892590a0c2, type: 3}
+  spriteAngles:
+  - 0
+  - 45
+  - 90
+  - 135
+  - 180
+  - 225
+  - 270
+  - 315

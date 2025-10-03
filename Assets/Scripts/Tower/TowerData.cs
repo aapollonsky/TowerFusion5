@@ -50,6 +50,13 @@ namespace TowerFusion
         public Color towerColor = Color.white;
         public Vector3 scale = Vector3.one;
         
+        [Header("Rotation")]
+        public bool useRotationSprites = false;
+        [Tooltip("Sprites for different rotation angles. Should be in order: 0°, 45°, 90°, 135°, 180°, 225°, 270°, 315°")]
+        public Sprite[] rotationSprites;
+        [Tooltip("Angles corresponding to rotation sprites. Default: 0, 45, 90, 135, 180, 225, 270, 315")]
+        public float[] spriteAngles = { 0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f };
+        
         /// <summary>
         /// Get attack cooldown in seconds
         /// </summary>

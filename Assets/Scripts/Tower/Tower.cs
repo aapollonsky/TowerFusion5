@@ -17,6 +17,11 @@ namespace TowerFusion
         [SerializeField] private GameObject rangeIndicator;
         [SerializeField] private CircleCollider2D rangeCollider;
         
+        [Header("Rotation Sprites")]
+        [SerializeField] private Sprite[] rotationSprites; // Array of sprites for different angles (0°, 45°, 90°, 135°, 180°, 225°, 270°, 315°)
+        [SerializeField] private float[] spriteAngles = {0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f}; // Corresponding angles
+        [SerializeField] private bool useRotationSprites = false; // Toggle to enable/disable sprite rotation
+        
         // Current state
         private Enemy currentTarget;
         private float lastAttackTime;
@@ -60,6 +65,14 @@ namespace TowerFusion
             modifiedDamage = towerData.damage;
             modifiedRange = towerData.attackRange;
             modifiedAttackSpeed = towerData.attackSpeed;
+            
+            // Initialize rotation sprites from TowerData
+            if (towerData.useRotationSprites && towerData.rotationSprites != null && towerData.rotationSprites.Length > 0)
+            {
+                useRotationSprites = true;
+                rotationSprites = towerData.rotationSprites;
+                spriteAngles = towerData.spriteAngles;
+            }
             
             SetupVisuals();
             SetupRangeCollider();
@@ -114,10 +127,21 @@ namespace TowerFusion
         /// </summary>
         private void UpdateTargeting()
         {
+            Enemy previousTarget = currentTarget;
+            
             if (currentTarget != null && IsValidTarget(currentTarget))
+            {
+                // Update rotation to track current target
+                if (useRotationSprites && currentTarget != null)
+                    UpdateRotationSprite(currentTarget.transform.position);
                 return; // Keep current target if still valid
+            }
             
             currentTarget = FindTarget();
+            
+            // Update rotation when target changes
+            if (useRotationSprites && currentTarget != previousTarget && currentTarget != null)
+                UpdateRotationSprite(currentTarget.transform.position);
         }
         
         /// <summary>
@@ -250,7 +274,7 @@ namespace TowerFusion
                 return;
             
             // Rotate towards target
-            RotateTowardsTarget(target);
+            //RotateTowardsTarget(target);
             
             if (towerData.isHitscan)
             {
@@ -316,6 +340,55 @@ namespace TowerFusion
         private void ApplySpecialEffects(Enemy target)
         {
             // TODO: Implement special effects like slow, poison, etc.
+        }
+        
+        /// <summary>
+        /// Update tower sprite rotation based on target position
+        /// </summary>
+        private void UpdateRotationSprite(Vector3 targetPosition)
+        {
+            if (!useRotationSprites || rotationSprites == null || rotationSprites.Length == 0)
+                return;
+            
+            // Calculate angle to target
+            Vector3 direction = targetPosition - transform.position;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            
+            // Normalize angle to 0-360 range
+            if (angle < 0) angle += 360f;
+            
+            // Find closest sprite angle
+            int closestIndex = GetClosestSpriteIndex(angle);
+            
+            // Update sprite if we have a valid index and sprite
+            if (closestIndex >= 0 && closestIndex < rotationSprites.Length && rotationSprites[closestIndex] != null)
+            {
+                spriteRenderer.sprite = rotationSprites[closestIndex];
+            }
+        }
+        
+        /// <summary>
+        /// Get the index of the sprite that best matches the target angle
+        /// </summary>
+        private int GetClosestSpriteIndex(float targetAngle)
+        {
+            if (spriteAngles == null || spriteAngles.Length == 0)
+                return 0;
+            
+            int closestIndex = 0;
+            float closestDifference = Mathf.Abs(Mathf.DeltaAngle(targetAngle, spriteAngles[0]));
+            
+            for (int i = 1; i < spriteAngles.Length && i < rotationSprites.Length; i++)
+            {
+                float difference = Mathf.Abs(Mathf.DeltaAngle(targetAngle, spriteAngles[i]));
+                if (difference < closestDifference)
+                {
+                    closestDifference = difference;
+                    closestIndex = i;
+                }
+            }
+            
+            return closestIndex;
         }
         
         /// <summary>
