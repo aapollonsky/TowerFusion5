@@ -22,6 +22,7 @@ MonoBehaviour:
   pathWidth: 1
   towerPositions: []
   waves:
+  - {fileID: 11400000, guid: 00c28497f647243508f7a4296f62e1f9, type: 2}
   - {fileID: 11400000, guid: 0951a873f39e542a6a66e9a40225e1e6, type: 2}
   maxTowers: 10
   enemySpawnPoint: {x: -6, y: 1, z: 0}
