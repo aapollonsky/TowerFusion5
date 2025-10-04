@@ -23,6 +23,14 @@ namespace TowerFusion
         private bool isAlive = true;
         private bool hasReachedEnd = false;
         
+        // Status effects
+        private float speedMultiplier = 1f;
+        private float damageMultiplier = 1f;
+        private bool isSlowed = false;
+        private bool isBrittle = false;
+        private Color originalColor = Color.white;
+        private bool originalColorStored = false;
+        
         // Movement
         private Vector3 targetPosition;
         private Vector3[] pathPoints;
@@ -37,6 +45,9 @@ namespace TowerFusion
         public float MaxHealth => enemyData?.maxHealth ?? 100f;
         public bool IsAlive => isAlive;
         public Vector3 Position => transform.position;
+        public float CurrentSpeed => enemyData.moveSpeed * speedMultiplier;
+        public bool IsSlowed => isSlowed;
+        public bool IsBrittle => isBrittle;
         
         private void Awake()
         {
@@ -57,6 +68,14 @@ namespace TowerFusion
             isAlive = true;
             hasReachedEnd = false;
             currentPathIndex = 0;
+            
+            // Store original color for status effect restoration
+            if (spriteRenderer != null && !originalColorStored)
+            {
+                originalColor = spriteRenderer.color;
+                originalColorStored = true;
+                Debug.Log($"Stored original color for {name}: {originalColor}");
+            }
             
             SetupVisuals();
             SetupMovement();
@@ -116,7 +135,8 @@ namespace TowerFusion
             
             // Move towards target
             Vector3 direction = (targetPosition - transform.position).normalized;
-            float moveDistance = enemyData.moveSpeed * Time.deltaTime;
+            float currentSpeed = enemyData.moveSpeed * speedMultiplier;
+            float moveDistance = currentSpeed * Time.deltaTime;
             
             transform.position += direction * moveDistance;
             
@@ -146,6 +166,13 @@ namespace TowerFusion
                 return;
             
             float actualDamage = enemyData.CalculateDamage(damage, damageType);
+            
+            // Apply brittle effect (increased damage taken)
+            if (isBrittle)
+            {
+                actualDamage *= damageMultiplier;
+            }
+            
             currentHealth -= actualDamage;
             
             // Update health bar
@@ -265,9 +292,182 @@ namespace TowerFusion
                 return transform.position;
             
             Vector3 direction = (targetPosition - transform.position).normalized;
-            float distance = enemyData.moveSpeed * timeAhead;
+            float currentSpeed = enemyData.moveSpeed * speedMultiplier;
+            float distance = currentSpeed * timeAhead;
             
             return transform.position + direction * distance;
         }
+        
+        /// <summary>
+        /// Update sprite color based on current status effects
+        /// </summary>
+        private void UpdateStatusEffectColor()
+        {
+            if (spriteRenderer == null) return;
+            
+            Color targetColor = originalColor;
+            
+            // Apply status effect colors
+            if (isSlowed && isBrittle)
+            {
+                // Mix cyan (slow) and white (brittle) - results in light cyan-white
+                targetColor = Color.Lerp(originalColor, Color.cyan, 0.3f);
+                targetColor = Color.Lerp(targetColor, Color.white, 0.2f);
+            }
+            else if (isSlowed)
+            {
+                // Cyan tint for slow
+                targetColor = Color.Lerp(originalColor, Color.cyan, 0.4f);
+            }
+            else if (isBrittle)
+            {
+                // White tint for brittle
+                targetColor = Color.Lerp(originalColor, Color.white, 0.5f);
+            }
+            
+            spriteRenderer.color = targetColor;
+            Debug.Log($"{name} color updated: Slowed={isSlowed}, Brittle={isBrittle}, Color={targetColor}");
+        }
+        
+        #region Trait Effects
+        
+        /// <summary>
+        /// Apply burn effect to this enemy
+        /// </summary>
+        public void ApplyBurnEffect(float damagePerSecond, float duration)
+        {
+            if (!isAlive) return;
+            
+            StartCoroutine(BurnCoroutine(damagePerSecond, duration));
+            Debug.Log($"Applied burn effect: {damagePerSecond} DPS for {duration}s");
+        }
+        
+        /// <summary>
+        /// Apply slow effect to this enemy
+        /// </summary>
+        public void ApplySlowEffect(float speedMultiplier, float duration)
+        {
+            if (!isAlive) return;
+            
+            StartCoroutine(SlowCoroutine(speedMultiplier, duration));
+            Debug.Log($"Applied slow effect: {speedMultiplier}x speed for {duration}s");
+        }
+        
+        /// <summary>
+        /// Apply brittle effect to this enemy (increases incoming damage)
+        /// </summary>
+        public void ApplyBrittleEffect(float damageMultiplier, float duration)
+        {
+            if (!isAlive) return;
+            
+            StartCoroutine(BrittleCoroutine(damageMultiplier, duration));
+            Debug.Log($"Applied brittle effect: {damageMultiplier}x damage taken for {duration}s");
+        }
+        
+        private System.Collections.IEnumerator BurnCoroutine(float damagePerSecond, float duration)
+        {
+            float elapsed = 0f;
+            float damageInterval = 0.5f; // Apply damage every 0.5 seconds
+            float nextDamageTime = 0f;
+            
+            while (elapsed < duration && isAlive)
+            {
+                elapsed += Time.deltaTime;
+                
+                if (elapsed >= nextDamageTime)
+                {
+                    float damage = damagePerSecond * damageInterval;
+                    currentHealth -= damage;
+                    
+                    // Create damage number
+                    CreateDamageNumber(damage);
+                    
+                    if (currentHealth <= 0)
+                    {
+                        Die();
+                        yield break;
+                    }
+                    
+                    UpdateHealthBar();
+                    nextDamageTime += damageInterval;
+                }
+                
+                yield return null;
+            }
+        }
+        
+        private System.Collections.IEnumerator SlowCoroutine(float newSpeedMultiplier, float duration)
+        {
+            if (isSlowed)
+            {
+                // If already slowed, just update the multiplier if it's more severe
+                if (newSpeedMultiplier < speedMultiplier)
+                {
+                    speedMultiplier = newSpeedMultiplier;
+                }
+                Debug.Log($"Enemy already slowed, existing effect continues");
+                yield break;
+            }
+            
+            // Apply slow effect
+            isSlowed = true;
+            float originalSpeedMultiplier = speedMultiplier;
+            speedMultiplier = newSpeedMultiplier;
+            
+            // Update visual indicator
+            UpdateStatusEffectColor();
+            
+            Debug.Log($"Enemy slowed: {speedMultiplier}x speed for {duration}s");
+            
+            // Wait for duration
+            yield return new WaitForSeconds(duration);
+            
+            // Remove slow effect
+            speedMultiplier = originalSpeedMultiplier;
+            isSlowed = false;
+            
+            // Update color based on remaining status effects
+            UpdateStatusEffectColor();
+            
+            Debug.Log("Enemy slow effect ended");
+        }
+        
+        private System.Collections.IEnumerator BrittleCoroutine(float newDamageMultiplier, float duration)
+        {
+            if (isBrittle)
+            {
+                // If already brittle, use the higher multiplier
+                if (newDamageMultiplier > damageMultiplier)
+                {
+                    damageMultiplier = newDamageMultiplier;
+                }
+                Debug.Log($"Enemy already brittle, existing effect continues");
+                yield break;
+            }
+            
+            // Apply brittle effect
+            isBrittle = true;
+            float originalDamageMultiplier = damageMultiplier;
+            damageMultiplier = newDamageMultiplier;
+            
+            // Update visual indicator
+            UpdateStatusEffectColor();
+            
+            Debug.Log($"Enemy brittle: {damageMultiplier}x damage taken for {duration}s");
+            
+            // Wait for duration
+            yield return new WaitForSeconds(duration);
+            
+            // Remove brittle effect
+            damageMultiplier = originalDamageMultiplier;
+            isBrittle = false;
+            
+            // Update color based on remaining status effects
+            UpdateStatusEffectColor();
+            
+            Debug.Log("Enemy brittle effect ended");
+        }
+        
+        #endregion
     }
 }

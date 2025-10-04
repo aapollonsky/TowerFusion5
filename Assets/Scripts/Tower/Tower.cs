@@ -22,6 +22,9 @@ namespace TowerFusion
         [SerializeField] private float[] spriteAngles = {0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f}; // Corresponding angles
         [SerializeField] private bool useRotationSprites = false; // Toggle to enable/disable sprite rotation
         
+        // Components
+        private TowerTraitManager traitManager;
+        
         // Current state
         private Enemy currentTarget;
         private float lastAttackTime;
@@ -44,6 +47,7 @@ namespace TowerFusion
         public float ModifiedDamage => modifiedDamage;
         public float ModifiedRange => modifiedRange;
         public Vector3 Position => transform.position;
+        public TowerTraitManager TraitManager => traitManager;
         
         private void Awake()
         {
@@ -52,6 +56,13 @@ namespace TowerFusion
             
             if (rangeCollider == null)
                 rangeCollider = GetComponent<CircleCollider2D>();
+                
+            // Get or create trait manager
+            traitManager = GetComponent<TowerTraitManager>();
+            if (traitManager == null)
+            {
+                traitManager = gameObject.AddComponent<TowerTraitManager>();
+            }
         }
         
         /// <summary>
@@ -76,8 +87,47 @@ namespace TowerFusion
             
             SetupVisuals();
             SetupRangeCollider();
+            RecalculateStats();
             
             lastAttackTime = -towerData.GetAttackCooldown(); // Allow immediate first attack
+        }
+        
+        /// <summary>
+        /// Called by TowerTraitManager when traits change
+        /// </summary>
+        public void OnTraitsChanged()
+        {
+            RecalculateStats();
+            SetupRangeCollider(); // Update range collider with new range
+        }
+        
+        /// <summary>
+        /// Recalculate tower stats including trait modifications
+        /// </summary>
+        private void RecalculateStats()
+        {
+            // Start with base stats
+            TowerStats baseStats = new TowerStats(
+                towerData.damage,
+                towerData.attackRange,
+                towerData.attackSpeed,
+                0f
+            );
+            
+            // Apply trait modifications
+            if (traitManager != null)
+            {
+                TowerStats modifiedStats = traitManager.CalculateModifiedStats(baseStats);
+                modifiedDamage = modifiedStats.damage;
+                modifiedRange = modifiedStats.range;
+                modifiedAttackSpeed = modifiedStats.attackSpeed;
+            }
+            else
+            {
+                modifiedDamage = baseStats.damage;
+                modifiedRange = baseStats.range;
+                modifiedAttackSpeed = baseStats.attackSpeed;
+            }
         }
         
         /// <summary>
@@ -305,7 +355,22 @@ namespace TowerFusion
         /// </summary>
         private void DealDamageToTarget(Enemy target)
         {
-            target.TakeDamage(modifiedDamage, towerData.damageType);
+            float damage = modifiedDamage;
+            float healthBefore = target.CurrentHealth;
+            
+            target.TakeDamage(damage, towerData.damageType);
+            
+            // Apply trait effects on attack
+            if (traitManager != null)
+            {
+                traitManager.ApplyTraitEffectsOnAttack(target, damage);
+                
+                // Apply trait effects on kill if enemy died
+                if (healthBefore > 0 && target.CurrentHealth <= 0)
+                {
+                    traitManager.ApplyTraitEffectsOnKill(target);
+                }
+            }
             
             // Apply special effects
             ApplySpecialEffects(target);
@@ -329,7 +394,7 @@ namespace TowerFusion
             Projectile projectile = projectileObj.GetComponent<Projectile>();
             if (projectile != null)
             {
-                projectile.Initialize(target, modifiedDamage, towerData.damageType, towerData.projectileSpeed);
+                projectile.Initialize(target, modifiedDamage, towerData.damageType, towerData.projectileSpeed, this);
                 projectile.SetSpecialEffects(towerData);
             }
         }
@@ -464,5 +529,63 @@ namespace TowerFusion
             
             return towerData.upgrades[currentUpgradeLevel];
         }
+        
+        #region Trait Management
+        
+        /// <summary>
+        /// Add a trait to this tower
+        /// </summary>
+        public bool AddTrait(TowerTrait trait)
+        {
+            if (traitManager == null) return false;
+            return traitManager.AddTrait(trait);
+        }
+        
+        /// <summary>
+        /// Remove a trait from this tower
+        /// </summary>
+        public bool RemoveTrait(TowerTrait trait)
+        {
+            if (traitManager == null) return false;
+            return traitManager.RemoveTrait(trait);
+        }
+        
+        /// <summary>
+        /// Check if tower has a specific trait
+        /// </summary>
+        public bool HasTrait(TowerTrait trait)
+        {
+            if (traitManager == null) return false;
+            return traitManager.HasTrait(trait);
+        }
+        
+        /// <summary>
+        /// Check if tower has any trait of a specific category
+        /// </summary>
+        public bool HasTraitOfCategory(TraitCategory category)
+        {
+            if (traitManager == null) return false;
+            return traitManager.HasTraitOfCategory(category);
+        }
+        
+        /// <summary>
+        /// Get all applied traits
+        /// </summary>
+        public System.Collections.Generic.List<TowerTrait> GetAppliedTraits()
+        {
+            if (traitManager == null) return new System.Collections.Generic.List<TowerTrait>();
+            return traitManager.AppliedTraits;
+        }
+        
+        /// <summary>
+        /// Clear all traits from this tower
+        /// </summary>
+        public void ClearAllTraits()
+        {
+            if (traitManager != null)
+                traitManager.ClearAllTraits();
+        }
+        
+        #endregion
     }
 }

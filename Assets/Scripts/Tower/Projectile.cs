@@ -25,6 +25,7 @@ namespace TowerFusion
         
         // Special effects
         private TowerData originTowerData;
+        private Tower originTower;
         
         // Movement
         private Vector3 targetPosition;
@@ -70,6 +71,26 @@ namespace TowerFusion
             
             // Destroy after maximum lifetime
             Destroy(gameObject, 5f);
+        }
+        
+        /// <summary>
+        /// Initialize projectile with tower reference for trait effects
+        /// </summary>
+        public void Initialize(Enemy target, float projectileDamage, DamageType type, float projectileSpeed, Tower tower)
+        {
+            originTower = tower;
+            if (tower != null)
+            {
+                originTowerData = tower.TowerData;
+                Debug.Log($"Projectile initialized with tower reference: {tower.name} (Traits: {tower.GetAppliedTraits().Count})");
+            }
+            else
+            {
+                Debug.LogWarning("Projectile initialized without tower reference - trait effects will not work");
+            }
+            
+            // Call base initialization
+            Initialize(target, projectileDamage, type, projectileSpeed);
         }
         
         /// <summary>
@@ -188,7 +209,31 @@ namespace TowerFusion
             // Deal damage
             if (hitEnemy != null && hitEnemy.IsAlive)
             {
+                float healthBefore = hitEnemy.CurrentHealth;
                 hitEnemy.TakeDamage(damage, damageType);
+                
+                // Apply trait effects from origin tower
+                if (originTower != null && originTower.TraitManager != null)
+                {
+                    Debug.Log($"Projectile: Applying trait effects from {originTower.name} to {hitEnemy.name}");
+                    originTower.TraitManager.ApplyTraitEffectsOnAttack(hitEnemy, damage);
+                    
+                    // Check if enemy was killed and apply kill effects
+                    if (healthBefore > 0 && hitEnemy.CurrentHealth <= 0)
+                    {
+                        Debug.Log($"Projectile: Enemy {hitEnemy.name} was killed, applying kill effects");
+                        originTower.TraitManager.ApplyTraitEffectsOnKill(hitEnemy);
+                    }
+                }
+                else if (originTower == null)
+                {
+                    Debug.LogWarning("Projectile: No origin tower reference - trait effects not applied");
+                }
+                else if (originTower.TraitManager == null)
+                {
+                    Debug.LogWarning($"Projectile: {originTower.name} has no trait manager - trait effects not applied");
+                }
+                
                 ApplySpecialEffects(hitEnemy);
             }
             
