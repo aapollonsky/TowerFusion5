@@ -30,10 +30,16 @@ namespace TowerFusion
         private float lastAttackTime;
         private int currentUpgradeLevel = 0;
         
+        // Charge time mechanics for Sniper trait
+        private bool isCharging = false;
+        private float chargeStartTime;
+        private float currentChargeTime = 0f;
+        
         // Modified stats (after upgrades)
         private float modifiedDamage;
         private float modifiedRange;
         private float modifiedAttackSpeed;
+        private float modifiedChargeTime;
         private bool hasModifiedEffects;
         
         // Events
@@ -48,6 +54,9 @@ namespace TowerFusion
         public float ModifiedRange => modifiedRange;
         public Vector3 Position => transform.position;
         public TowerTraitManager TraitManager => traitManager;
+        public bool IsCharging => isCharging;
+        public float ChargeProgress => isCharging ? Mathf.Clamp01((Time.time - chargeStartTime) / modifiedChargeTime) : 0f;
+        public float ChargeTime => modifiedChargeTime;
         
         private void Awake()
         {
@@ -63,6 +72,9 @@ namespace TowerFusion
             {
                 traitManager = gameObject.AddComponent<TowerTraitManager>();
             }
+            
+            // Ensure tower has a click collider for mouse detection
+            EnsureClickCollider();
         }
         
         /// <summary>
@@ -76,6 +88,7 @@ namespace TowerFusion
             modifiedDamage = towerData.damage;
             modifiedRange = towerData.attackRange;
             modifiedAttackSpeed = towerData.attackSpeed;
+            modifiedChargeTime = 0f; // Base towers have no charge time
             
             // Initialize rotation sprites from TowerData
             if (towerData.useRotationSprites && towerData.rotationSprites != null && towerData.rotationSprites.Length > 0)
@@ -118,16 +131,32 @@ namespace TowerFusion
             if (traitManager != null)
             {
                 TowerStats modifiedStats = traitManager.CalculateModifiedStats(baseStats);
+                
+                // Store old values for comparison
+                float oldRange = modifiedRange;
+                
                 modifiedDamage = modifiedStats.damage;
                 modifiedRange = modifiedStats.range;
                 modifiedAttackSpeed = modifiedStats.attackSpeed;
+                modifiedChargeTime = modifiedStats.chargeTime;
+                
+                // Debug log if range changed
+                if (Mathf.Abs(oldRange - modifiedRange) > 0.1f)
+                {
+                    Debug.Log($"{name}: Range updated from {oldRange} to {modifiedRange}");
+                }
             }
             else
             {
                 modifiedDamage = baseStats.damage;
                 modifiedRange = baseStats.range;
                 modifiedAttackSpeed = baseStats.attackSpeed;
+                modifiedChargeTime = baseStats.chargeTime;
             }
+            
+            // Update visual elements that depend on modified stats
+            UpdateRangeIndicator();
+            SetupRangeCollider();
         }
         
         /// <summary>
@@ -163,6 +192,141 @@ namespace TowerFusion
             }
         }
         
+        /// <summary>
+        /// Update range indicator to show current modified range
+        /// </summary>
+        private void UpdateRangeIndicator()
+        {
+            // Create range indicator if it doesn't exist
+            if (rangeIndicator == null)
+            {
+                CreateRangeIndicator();
+            }
+            
+            if (rangeIndicator != null)
+            {
+                // Update LineRenderer circle to match the current modified range
+                LineRenderer lineRenderer = rangeIndicator.GetComponent<LineRenderer>();
+                if (lineRenderer != null)
+                {
+                    // Update circle points with correct radius
+                    CreateCirclePoints(lineRenderer, modifiedRange, lineRenderer.positionCount);
+                    
+                    // Update color based on if range is modified
+                    bool rangeEnhanced = Mathf.Abs(modifiedRange - towerData.attackRange) > 0.1f;
+                    Color indicatorColor = rangeEnhanced ? new Color(0f, 1f, 0f, 0.8f) : new Color(1f, 1f, 1f, 0.8f);
+                    lineRenderer.material.color = indicatorColor;
+                    
+                    // Ensure high sorting order for visibility
+                    lineRenderer.sortingOrder = Mathf.Max(lineRenderer.sortingOrder, 1000);
+                }
+                else
+                {
+                    // Fallback for sprite-based indicators
+                    rangeIndicator.transform.localScale = Vector3.one * (modifiedRange * 2f);
+                    
+                    SpriteRenderer rangeRenderer = rangeIndicator.GetComponent<SpriteRenderer>();
+                    if (rangeRenderer != null)
+                    {
+                        bool rangeEnhanced = Mathf.Abs(modifiedRange - towerData.attackRange) > 0.1f;
+                        rangeRenderer.color = rangeEnhanced ? new Color(0f, 1f, 0f, 0.5f) : new Color(1f, 1f, 1f, 0.5f);
+                        rangeRenderer.sortingOrder = Mathf.Max(rangeRenderer.sortingOrder, 1000);
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Create a simple range indicator if one doesn't exist
+        /// </summary>
+        private void CreateRangeIndicator()
+        {
+            // Create range indicator using LineRenderer for better visibility
+            GameObject indicator = new GameObject("RangeIndicator");
+            indicator.transform.SetParent(transform);
+            indicator.transform.localPosition = Vector3.zero;
+            
+            LineRenderer lineRenderer = indicator.AddComponent<LineRenderer>();
+            
+            // Configure LineRenderer for circle
+            lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+            lineRenderer.material.color = new Color(1f, 1f, 1f, 0.8f);
+            lineRenderer.startWidth = 0.1f;
+            lineRenderer.endWidth = 0.1f;
+            lineRenderer.useWorldSpace = false;
+            lineRenderer.loop = true;
+            
+            // Try to set sorting layer for visibility
+            try
+            {
+                lineRenderer.sortingLayerName = "UI";
+                lineRenderer.sortingOrder = 1000;
+            }
+            catch
+            {
+                lineRenderer.sortingOrder = 1000;
+            }
+            
+            // Create circle points
+            int segments = 64;
+            lineRenderer.positionCount = segments;
+            CreateCirclePoints(lineRenderer, 1f, segments); // Will be scaled later
+            
+            rangeIndicator = indicator;
+            rangeIndicator.SetActive(false); // Start hidden
+        }
+        
+        /// <summary>
+        /// Create circle points for LineRenderer
+        /// </summary>
+        private void CreateCirclePoints(LineRenderer lineRenderer, float radius, int segments)
+        {
+            float angleIncrement = 2 * Mathf.PI / segments;
+            
+            for (int i = 0; i < segments; i++)
+            {
+                float angle = i * angleIncrement;
+                float x = Mathf.Cos(angle) * radius;
+                float y = Mathf.Sin(angle) * radius;
+                lineRenderer.SetPosition(i, new Vector3(x, y, 0));
+            }
+        }
+        
+        /// <summary>
+        /// Create a simple circle texture for range indicator
+        /// </summary>
+        private Texture2D CreateCircleTexture(int size)
+        {
+            Texture2D texture = new Texture2D(size, size);
+            Color[] pixels = new Color[size * size];
+            
+            Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+            float radius = size * 0.5f - 2f; // Slightly smaller for clean edge
+            
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 pos = new Vector2(x, y);
+                    float distance = Vector2.Distance(pos, center);
+                    
+                    // Create a circle outline
+                    if (distance >= radius - 2f && distance <= radius)
+                    {
+                        pixels[y * size + x] = Color.white;
+                    }
+                    else
+                    {
+                        pixels[y * size + x] = Color.clear;
+                    }
+                }
+            }
+            
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return texture;
+        }
+        
         private void Update()
         {
             if (towerData == null)
@@ -170,6 +334,66 @@ namespace TowerFusion
             
             UpdateTargeting();
             TryAttack();
+            
+            // Handle mouse click for range display
+            HandleMouseClick();
+        }
+        
+        /// <summary>
+        /// Handle mouse clicks on the tower to show range indicator
+        /// </summary>
+        private void HandleMouseClick()
+        {
+            if (Input.GetMouseButtonDown(0)) // Left mouse button
+            {
+                Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                mouseWorldPos.z = 0f;
+                
+                // Check if click is on this tower (simple distance check)
+                float clickDistance = Vector3.Distance(mouseWorldPos, transform.position);
+                if (clickDistance <= 1f) // Within 1 unit of the tower
+                {
+                    ShowRangeIndicatorTemporarily(3f);
+                    Debug.Log($"Clicked on {name} - showing range indicator (Range: {modifiedRange})");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Unity's built-in mouse click detection (requires collider)
+        /// </summary>
+        private void OnMouseDown()
+        {
+            ShowRangeIndicatorTemporarily(3f);
+            Debug.Log($"Clicked on {name} - showing range indicator (Range: {modifiedRange})");
+        }
+        
+        /// <summary>
+        /// Ensure tower has a collider for click detection
+        /// </summary>
+        private void EnsureClickCollider()
+        {
+            // Check if we have a non-trigger collider for click detection
+            Collider2D[] colliders = GetComponents<Collider2D>();
+            bool hasClickCollider = false;
+            
+            foreach (var collider in colliders)
+            {
+                if (!collider.isTrigger)
+                {
+                    hasClickCollider = true;
+                    break;
+                }
+            }
+            
+            if (!hasClickCollider)
+            {
+                // Add a small collider for click detection
+                CircleCollider2D clickCollider = gameObject.AddComponent<CircleCollider2D>();
+                clickCollider.radius = 0.5f; // Small radius around tower sprite
+                clickCollider.isTrigger = false; // Must be false for OnMouseDown to work
+                Debug.Log($"Added click collider to {name}");
+            }
         }
         
         /// <summary>
@@ -303,15 +527,51 @@ namespace TowerFusion
         private void TryAttack()
         {
             if (currentTarget == null)
+            {
+                // Cancel charging if target is lost
+                if (isCharging)
+                {
+                    isCharging = false;
+                    Debug.Log($"{name}: Target lost, canceling charge");
+                }
                 return;
+            }
             
             float timeSinceLastAttack = Time.time - lastAttackTime;
             float attackCooldown = 1f / modifiedAttackSpeed;
             
             if (timeSinceLastAttack >= attackCooldown)
             {
-                Attack(currentTarget);
-                lastAttackTime = Time.time;
+                // Check if this tower has charge time (Sniper trait)
+                if (modifiedChargeTime > 0f)
+                {
+                    if (!isCharging)
+                    {
+                        // Start charging
+                        isCharging = true;
+                        chargeStartTime = Time.time;
+                        Debug.Log($"{name}: Started charging (charge time: {modifiedChargeTime}s)");
+                    }
+                    else
+                    {
+                        // Check if charge is complete
+                        float chargeElapsed = Time.time - chargeStartTime;
+                        if (chargeElapsed >= modifiedChargeTime)
+                        {
+                            // Charge complete, fire!
+                            Attack(currentTarget);
+                            lastAttackTime = Time.time;
+                            isCharging = false;
+                            Debug.Log($"{name}: Charge complete, firing!");
+                        }
+                    }
+                }
+                else
+                {
+                    // No charge time, attack immediately
+                    Attack(currentTarget);
+                    lastAttackTime = Time.time;
+                }
             }
         }
         
@@ -505,7 +765,29 @@ namespace TowerFusion
             if (rangeIndicator != null)
             {
                 rangeIndicator.SetActive(visible);
+                if (visible)
+                {
+                    UpdateRangeIndicator(); // Ensure it shows the correct range when made visible
+                }
             }
+        }
+        
+        /// <summary>
+        /// Show range indicator temporarily (useful for trait application feedback)
+        /// </summary>
+        public void ShowRangeIndicatorTemporarily(float duration = 2f)
+        {
+            if (rangeIndicator != null)
+            {
+                SetRangeIndicatorVisible(true);
+                StartCoroutine(HideRangeIndicatorAfterDelay(duration));
+            }
+        }
+        
+        private System.Collections.IEnumerator HideRangeIndicatorAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            SetRangeIndicatorVisible(false);
         }
         
         /// <summary>

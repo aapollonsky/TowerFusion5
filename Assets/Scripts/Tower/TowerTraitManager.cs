@@ -73,6 +73,16 @@ namespace TowerFusion
             ApplyTraitVisuals(trait);
             NotifyTowerOfTraitChanges();
             
+            // Show range indicator if this trait affects range
+            if (trait.rangeMultiplier != 1f || trait.rangeBonus != 0f)
+            {
+                if (tower != null)
+                {
+                    tower.ShowRangeIndicatorTemporarily(3f); // Show for 3 seconds
+                    Debug.Log($"Showing range indicator for {trait.traitName} (range modifier: {trait.rangeMultiplier}x + {trait.rangeBonus})");
+                }
+            }
+            
             OnTraitAdded?.Invoke(trait);
             OnTraitsChanged?.Invoke();
             
@@ -145,10 +155,17 @@ namespace TowerFusion
         {
             TowerStats modifiedStats = baseStats;
             
+            Debug.Log($"Base stats - Range: {baseStats.range}, Damage: {baseStats.damage}, AttackSpeed: {baseStats.attackSpeed}, ChargeTime: {baseStats.chargeTime}");
+            
             foreach (var trait in appliedTraits)
             {
+                TowerStats beforeStats = modifiedStats;
                 modifiedStats = trait.ApplyToStats(modifiedStats);
+                
+                Debug.Log($"Trait '{trait.traitName}': Range {beforeStats.range} -> {modifiedStats.range} (multiplier: {trait.rangeMultiplier}, bonus: {trait.rangeBonus})");
             }
+            
+            Debug.Log($"Final modified stats - Range: {modifiedStats.range}, Damage: {modifiedStats.damage}, AttackSpeed: {modifiedStats.attackSpeed}, ChargeTime: {modifiedStats.chargeTime}");
             
             return modifiedStats;
         }

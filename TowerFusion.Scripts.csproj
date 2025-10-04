@@ -85,6 +85,7 @@
     <Compile Include="Assets/Scripts/Tower/TowerManager.cs" />
     <Compile Include="Assets/Scripts/UI/MapSelectionUI.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerTrait.cs" />
+    <Compile Include="Assets/Scripts/Test/SniperTraitTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/Scripts/TowerFusion.Scripts.asmdef" />
