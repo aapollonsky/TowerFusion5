@@ -28,6 +28,7 @@ namespace TowerFusion
         private float damageMultiplier = 1f;
         private bool isSlowed = false;
         private bool isBrittle = false;
+        private bool isBurning = false;
         private Color originalColor = Color.white;
         private bool originalColorStored = false;
         
@@ -48,6 +49,7 @@ namespace TowerFusion
         public float CurrentSpeed => enemyData.moveSpeed * speedMultiplier;
         public bool IsSlowed => isSlowed;
         public bool IsBrittle => isBrittle;
+        public bool IsBurning => isBurning;
         
         private void Awake()
         {
@@ -307,8 +309,24 @@ namespace TowerFusion
             
             Color targetColor = originalColor;
             
-            // Apply status effect colors
-            if (isSlowed && isBrittle)
+            // Apply status effect colors - burn takes priority as it's most visible
+            if (isBurning)
+            {
+                // Red/orange tint for burning
+                targetColor = Color.Lerp(originalColor, Color.red, 0.6f);
+                targetColor = Color.Lerp(targetColor, new Color(1f, 0.5f, 0f), 0.3f); // Add orange tint
+                
+                // Apply additional effects if present
+                if (isSlowed)
+                {
+                    targetColor = Color.Lerp(targetColor, Color.cyan, 0.2f);
+                }
+                if (isBrittle)
+                {
+                    targetColor = Color.Lerp(targetColor, Color.white, 0.1f);
+                }
+            }
+            else if (isSlowed && isBrittle)
             {
                 // Mix cyan (slow) and white (brittle) - results in light cyan-white
                 targetColor = Color.Lerp(originalColor, Color.cyan, 0.3f);
@@ -326,7 +344,7 @@ namespace TowerFusion
             }
             
             spriteRenderer.color = targetColor;
-            Debug.Log($"{name} color updated: Slowed={isSlowed}, Brittle={isBrittle}, Color={targetColor}");
+            Debug.Log($"{name} color updated: Burning={isBurning}, Slowed={isSlowed}, Brittle={isBrittle}, Color={targetColor}");
         }
         
         #region Trait Effects
@@ -366,24 +384,63 @@ namespace TowerFusion
         
         private System.Collections.IEnumerator BurnCoroutine(float damagePerSecond, float duration)
         {
+            if (isBurning)
+            {
+                Debug.Log($"Enemy already burning, existing effect continues");
+                yield break;
+            }
+            
+            // Apply burn effect
+            isBurning = true;
+            
+            // Update visual indicator
+            UpdateStatusEffectColor();
+            
+            Debug.Log($"Enemy burning: {damagePerSecond} DPS for {duration}s");
+            
             float elapsed = 0f;
             float damageInterval = 0.5f; // Apply damage every 0.5 seconds
-            float nextDamageTime = 0f;
+            float nextDamageTime = damageInterval;
             
             while (elapsed < duration && isAlive)
             {
                 elapsed += Time.deltaTime;
+                
+                // Add flickering burn effect
+                if (spriteRenderer != null)
+                {
+                    float flicker = Mathf.Sin(elapsed * 15f) * 0.3f + 1f; // Fast flicker
+                    Color burnColor = Color.Lerp(originalColor, Color.red, 0.6f);
+                    burnColor = Color.Lerp(burnColor, new Color(1f, 0.5f, 0f), 0.3f); // Orange tint
+                    burnColor *= flicker; // Apply flicker
+                    
+                    // Maintain other status effect colors
+                    if (isSlowed)
+                    {
+                        burnColor = Color.Lerp(burnColor, Color.cyan, 0.2f);
+                    }
+                    if (isBrittle)
+                    {
+                        burnColor = Color.Lerp(burnColor, Color.white, 0.1f);
+                    }
+                    
+                    spriteRenderer.color = burnColor;
+                }
                 
                 if (elapsed >= nextDamageTime)
                 {
                     float damage = damagePerSecond * damageInterval;
                     currentHealth -= damage;
                     
-                    // Create damage number
+                    // Create damage number with fire effect
                     CreateDamageNumber(damage);
+                    
+                    // Add some visual flair - could add particle effects here later
+                    Debug.Log($"🔥 Burn damage: {damage} (Health: {currentHealth})");
                     
                     if (currentHealth <= 0)
                     {
+                        isBurning = false;
                         Die();
                         yield break;
                     }
@@ -394,6 +451,14 @@ namespace TowerFusion
                 
                 yield return null;
             }
+            
+            // Remove burn effect
+            isBurning = false;
+            
+            // Update color based on remaining status effects
+            UpdateStatusEffectColor();
+            
+            Debug.Log("Enemy burn effect ended");
         }
         
         private System.Collections.IEnumerator SlowCoroutine(float newSpeedMultiplier, float duration)
