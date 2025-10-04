@@ -93,7 +93,7 @@ namespace TowerFusion
             Debug.Log($"Charge time: {testTower.ChargeTime}");
             
             // Force show range indicator to visualize the change
-            testTower.SetRangeIndicatorVisible(true);
+            testTower.ShowRangeIndicatorTemporarily(5f); // Show with animation for 5 seconds
         }
         
         [ContextMenu("Test Sniper Attack")]
@@ -194,6 +194,62 @@ namespace TowerFusion
             Debug.Log($"Range indicator shown - Original: {testTower.TowerData.attackRange}, Modified: {testTower.ModifiedRange}");
         }
         
+        [ContextMenu("Test Glow Effect")]
+        public void TestGlowEffect()
+        {
+            if (testTower == null)
+            {
+                Debug.LogWarning("No test tower assigned!");
+                return;
+            }
+            
+            testTower.ShowRangeIndicatorTemporarily(10f);
+            Debug.Log("Showing beautiful glowing range indicator for 10 seconds");
+        }
+        
+        [ContextMenu("Verify Range Accuracy")]
+        public void VerifyRangeAccuracy()
+        {
+            if (testTower == null || testEnemies == null || testEnemies.Length == 0)
+            {
+                Debug.LogWarning("Need tower and enemies to verify range accuracy!");
+                return;
+            }
+            
+            Vector3 towerPos = testTower.transform.position;
+            float towerRange = testTower.ModifiedRange;
+            
+            Debug.Log("=== RANGE ACCURACY TEST ===");
+            Debug.Log($"Tower position: {towerPos}");
+            Debug.Log($"Tower range: {towerRange}");
+            
+            // Test positions at exact range boundary
+            Vector3[] testPositions = {
+                towerPos + Vector3.right * towerRange,      // Exactly at range
+                towerPos + Vector3.up * towerRange,         // Exactly at range  
+                towerPos + Vector3.right * (towerRange - 0.1f), // Just inside range
+                towerPos + Vector3.right * (towerRange + 0.1f)  // Just outside range
+            };
+            
+            string[] descriptions = { "Right edge", "Top edge", "Just inside", "Just outside" };
+            
+            for (int i = 0; i < testPositions.Length && i < testEnemies.Length; i++)
+            {
+                if (testEnemies[i] != null)
+                {
+                    testEnemies[i].transform.position = testPositions[i];
+                    float actualDistance = Vector3.Distance(towerPos, testPositions[i]);
+                    bool shouldBeInRange = actualDistance <= towerRange;
+                    
+                    Debug.Log($"{descriptions[i]}: Position {testPositions[i]}, Distance {actualDistance:F2}, Should be in range: {shouldBeInRange}");
+                }
+            }
+            
+            // Show range indicator for verification
+            testTower.SetRangeIndicatorVisible(true);
+            Debug.Log("Range indicator shown. Verify that enemies at exact range are touching the circle edge.");
+        }
+        
         [ContextMenu("Debug Range Calculation")]
         public void DebugRangeCalculation()
         {
@@ -233,22 +289,43 @@ namespace TowerFusion
         {
             if (testTower == null) return;
             
-            // Draw original range in red
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(testTower.transform.position, testTower.TowerData.attackRange);
+            Vector3 towerPos = testTower.transform.position;
             
-            // Draw modified range in green if different
+            // Draw original range in red (thin line)
+            Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
+            Gizmos.DrawWireSphere(towerPos, testTower.TowerData.attackRange);
+            
+            // Draw modified range in bright green if different (thick line)
             if (Mathf.Abs(testTower.ModifiedRange - testTower.TowerData.attackRange) > 0.1f)
             {
                 Gizmos.color = Color.green;
-                Gizmos.DrawWireSphere(testTower.transform.position, testTower.ModifiedRange);
+                // Draw multiple circles for thicker line effect
+                for (float offset = -0.05f; offset <= 0.05f; offset += 0.025f)
+                {
+                    Gizmos.DrawWireSphere(towerPos, testTower.ModifiedRange + offset);
+                }
+                
+                // Draw cross-hairs at exact range boundaries for precision verification
+                Gizmos.color = Color.cyan;
+                float range = testTower.ModifiedRange;
+                Vector3[] directions = { Vector3.right, Vector3.up, Vector3.left, Vector3.down };
+                
+                foreach (var dir in directions)
+                {
+                    Vector3 rangePoint = towerPos + dir * range;
+                    Vector3 crossSize = Vector3.up * 0.2f;
+                    if (dir == Vector3.up || dir == Vector3.down)
+                        crossSize = Vector3.right * 0.2f;
+                    
+                    Gizmos.DrawLine(rangePoint - crossSize, rangePoint + crossSize);
+                }
             }
             
             // Draw charge progress indicator
             if (testTower.IsCharging)
             {
                 Gizmos.color = Color.yellow;
-                Vector3 chargeBarPos = testTower.transform.position + Vector3.up * 2f;
+                Vector3 chargeBarPos = towerPos + Vector3.up * 2f;
                 float barWidth = 2f;
                 float progress = testTower.ChargeProgress;
                 
@@ -261,6 +338,23 @@ namespace TowerFusion
                 Gizmos.color = Color.yellow;
                 Vector3 progressEnd = chargeBarPos - Vector3.right * barWidth * 0.5f + Vector3.right * barWidth * progress;
                 Gizmos.DrawLine(chargeBarPos - Vector3.right * barWidth * 0.5f, progressEnd);
+            }
+            
+            // Draw range accuracy info
+            if (testEnemies != null)
+            {
+                Gizmos.color = Color.white;
+                foreach (var enemy in testEnemies)
+                {
+                    if (enemy != null)
+                    {
+                        float distance = Vector3.Distance(towerPos, enemy.transform.position);
+                        bool inRange = distance <= testTower.ModifiedRange;
+                        
+                        Gizmos.color = inRange ? Color.green : Color.red;
+                        Gizmos.DrawLine(towerPos, enemy.transform.position);
+                    }
+                }
             }
         }
     }

@@ -205,31 +205,50 @@ namespace TowerFusion
             
             if (rangeIndicator != null)
             {
-                // Update LineRenderer circle to match the current modified range
-                LineRenderer lineRenderer = rangeIndicator.GetComponent<LineRenderer>();
-                if (lineRenderer != null)
+                // Update layered glowing disc indicator
+                Transform mainGlow = rangeIndicator.transform.Find("MainGlow");
+                Transform outerGlow = rangeIndicator.transform.Find("OuterGlow");
+                
+                if (mainGlow != null && outerGlow != null)
                 {
-                    // Update circle points with correct radius
-                    CreateCirclePoints(lineRenderer, modifiedRange, lineRenderer.positionCount);
+                    // Scale both layers to match the current modified range
+                    // Main sprite has 1 unit diameter, so scale by diameter (range * 2)
+                    float diameter = modifiedRange * 2f;
+                    mainGlow.localScale = Vector3.one * diameter;
+                    outerGlow.localScale = Vector3.one * diameter; // Outer glow matches exactly
                     
-                    // Update color based on if range is modified
-                    bool rangeEnhanced = Mathf.Abs(modifiedRange - towerData.attackRange) > 0.1f;
-                    Color indicatorColor = rangeEnhanced ? new Color(0f, 1f, 0f, 0.8f) : new Color(1f, 1f, 1f, 0.8f);
-                    lineRenderer.material.color = indicatorColor;
+                    Debug.Log($"Range indicator updated: Range={modifiedRange}, Diameter={diameter}, Scale={diameter}");
                     
-                    // Ensure high sorting order for visibility
-                    lineRenderer.sortingOrder = Mathf.Max(lineRenderer.sortingOrder, 1000);
+                    // Update colors based on applied traits
+                    Color glowColor = GetRangeIndicatorColor();
+                    
+                    SpriteRenderer mainRenderer = mainGlow.GetComponent<SpriteRenderer>();
+                    SpriteRenderer outerRenderer = outerGlow.GetComponent<SpriteRenderer>();
+                    
+                    if (mainRenderer != null)
+                    {
+                        mainRenderer.color = glowColor;
+                        mainRenderer.sortingOrder = Mathf.Max(mainRenderer.sortingOrder, 1001);
+                    }
+                    
+                    if (outerRenderer != null)
+                    {
+                        // Outer glow uses a more transparent version of the same color
+                        Color outerColor = glowColor;
+                        outerColor.a *= 0.3f; // Much more transparent
+                        outerRenderer.color = outerColor;
+                        outerRenderer.sortingOrder = Mathf.Max(outerRenderer.sortingOrder, 1000);
+                    }
                 }
                 else
                 {
-                    // Fallback for sprite-based indicators
-                    rangeIndicator.transform.localScale = Vector3.one * (modifiedRange * 2f);
-                    
+                    // Fallback for single sprite-based indicators
                     SpriteRenderer rangeRenderer = rangeIndicator.GetComponent<SpriteRenderer>();
                     if (rangeRenderer != null)
                     {
-                        bool rangeEnhanced = Mathf.Abs(modifiedRange - towerData.attackRange) > 0.1f;
-                        rangeRenderer.color = rangeEnhanced ? new Color(0f, 1f, 0f, 0.5f) : new Color(1f, 1f, 1f, 0.5f);
+                        rangeIndicator.transform.localScale = Vector3.one * (modifiedRange * 2f);
+                        Color glowColor = GetRangeIndicatorColor();
+                        rangeRenderer.color = glowColor;
                         rangeRenderer.sortingOrder = Mathf.Max(rangeRenderer.sortingOrder, 1000);
                     }
                 }
@@ -237,40 +256,58 @@ namespace TowerFusion
         }
         
         /// <summary>
-        /// Create a simple range indicator if one doesn't exist
+        /// Create a beautiful glowing disc range indicator with layered glow effect
         /// </summary>
         private void CreateRangeIndicator()
         {
-            // Create range indicator using LineRenderer for better visibility
+            // Create main range indicator container
             GameObject indicator = new GameObject("RangeIndicator");
             indicator.transform.SetParent(transform);
             indicator.transform.localPosition = Vector3.zero;
             
-            LineRenderer lineRenderer = indicator.AddComponent<LineRenderer>();
+            // Create main glow disc
+            GameObject mainDisc = new GameObject("MainGlow");
+            mainDisc.transform.SetParent(indicator.transform);
+            mainDisc.transform.localPosition = Vector3.zero;
             
-            // Configure LineRenderer for circle
-            lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-            lineRenderer.material.color = new Color(1f, 1f, 1f, 0.8f);
-            lineRenderer.startWidth = 0.1f;
-            lineRenderer.endWidth = 0.1f;
-            lineRenderer.useWorldSpace = false;
-            lineRenderer.loop = true;
+            SpriteRenderer mainRenderer = mainDisc.AddComponent<SpriteRenderer>();
             
-            // Try to set sorting layer for visibility
+            // Create a glowing disc texture with gradient
+            Texture2D glowTexture = CreateGlowDiscTexture(256);
+            // Create sprite with exact 1 unit diameter (256 pixels = 1 unit diameter, so 256 PPU)
+            Sprite glowSprite = Sprite.Create(glowTexture, new Rect(0, 0, 256, 256), new Vector2(0.5f, 0.5f), 256f);
+            
+            mainRenderer.sprite = glowSprite;
+            mainRenderer.color = new Color(1f, 1f, 1f, 0.6f);
+            
+            // Create outer subtle ring for enhanced effect
+            GameObject outerRing = new GameObject("OuterGlow");
+            outerRing.transform.SetParent(indicator.transform);
+            outerRing.transform.localPosition = Vector3.zero;
+            
+            SpriteRenderer outerRenderer = outerRing.AddComponent<SpriteRenderer>();
+            
+            // Create softer, larger outer glow
+            Texture2D outerTexture = CreateSoftGlowTexture(320);
+            // Create outer sprite with 1.25 unit diameter (320 pixels = 1.25 units, so 256 PPU)
+            Sprite outerSprite = Sprite.Create(outerTexture, new Rect(0, 0, 320, 320), new Vector2(0.5f, 0.5f), 256f);
+            
+            outerRenderer.sprite = outerSprite;
+            outerRenderer.color = new Color(1f, 1f, 1f, 0.2f);
+            
+            // Set sorting orders
             try
             {
-                lineRenderer.sortingLayerName = "UI";
-                lineRenderer.sortingOrder = 1000;
+                mainRenderer.sortingLayerName = "UI";
+                mainRenderer.sortingOrder = 1001;
+                outerRenderer.sortingLayerName = "UI";
+                outerRenderer.sortingOrder = 1000;
             }
             catch
             {
-                lineRenderer.sortingOrder = 1000;
+                mainRenderer.sortingOrder = 1001;
+                outerRenderer.sortingOrder = 1000;
             }
-            
-            // Create circle points
-            int segments = 64;
-            lineRenderer.positionCount = segments;
-            CreateCirclePoints(lineRenderer, 1f, segments); // Will be scaled later
             
             rangeIndicator = indicator;
             rangeIndicator.SetActive(false); // Start hidden
@@ -293,7 +330,153 @@ namespace TowerFusion
         }
         
         /// <summary>
-        /// Create a simple circle texture for range indicator
+        /// Get the appropriate glow color for the range indicator based on applied traits
+        /// </summary>
+        private Color GetRangeIndicatorColor()
+        {
+            bool rangeEnhanced = Mathf.Abs(modifiedRange - towerData.attackRange) > 0.1f;
+            
+            if (!rangeEnhanced)
+            {
+                // Normal range: soft blue-white glow
+                return new Color(0.8f, 0.9f, 1f, 0.5f);
+            }
+            
+            // Enhanced range - check for specific traits to determine color
+            if (traitManager != null)
+            {
+                foreach (var trait in traitManager.AppliedTraits)
+                {
+                    if (trait.rangeMultiplier > 1f || trait.rangeBonus > 0f)
+                    {
+                        // Color based on trait category or name
+                        switch (trait.traitName.ToLower())
+                        {
+                            case "sniper":
+                                return new Color(0.2f, 1f, 0.4f, 0.6f); // Bright green for sniper
+                            case "artillery":
+                                return new Color(1f, 0.6f, 0.2f, 0.6f); // Orange for artillery
+                            case "scout":
+                                return new Color(0.2f, 0.8f, 1f, 0.6f); // Cyan for scout
+                            default:
+                                // Check trait category
+                                switch (trait.category)
+                                {
+                                    case TraitCategory.Range:
+                                        return new Color(0.3f, 1f, 0.3f, 0.6f); // Green for range traits
+                                    case TraitCategory.Elemental:
+                                        return new Color(1f, 0.3f, 1f, 0.6f); // Magenta for elemental
+                                    case TraitCategory.Support:
+                                        return new Color(1f, 1f, 0.3f, 0.6f); // Yellow for support
+                                    default:
+                                        return new Color(0.2f, 1f, 0.3f, 0.6f); // Default green
+                                }
+                        }
+                    }
+                }
+            }
+            
+            // Fallback: soft green glow for enhanced range
+            return new Color(0.2f, 1f, 0.3f, 0.6f);
+        }
+        
+        /// <summary>
+        /// Create a beautiful glowing disc texture with soft edges
+        /// </summary>
+        private Texture2D CreateGlowDiscTexture(int size)
+        {
+            Texture2D texture = new Texture2D(size, size);
+            Color[] pixels = new Color[size * size];
+            
+            Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+            float maxRadius = size * 0.5f;
+            
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 pos = new Vector2(x, y);
+                    float distance = Vector2.Distance(pos, center);
+                    float normalizedDistance = distance / maxRadius;
+                    
+                    // Create soft glowing disc with multiple layers
+                    float alpha = 0f;
+                    
+                    if (normalizedDistance <= 1f)
+                    {
+                        // Inner bright core (0-30% radius)
+                        if (normalizedDistance <= 0.3f)
+                        {
+                            alpha = Mathf.Lerp(0.8f, 0.6f, normalizedDistance / 0.3f);
+                        }
+                        // Medium glow (30-70% radius)
+                        else if (normalizedDistance <= 0.7f)
+                        {
+                            float t = (normalizedDistance - 0.3f) / 0.4f;
+                            alpha = Mathf.Lerp(0.6f, 0.3f, t);
+                        }
+                        // Outer soft edge (70-100% radius)
+                        else
+                        {
+                            float t = (normalizedDistance - 0.7f) / 0.3f;
+                            alpha = Mathf.Lerp(0.3f, 0f, t * t); // Quadratic falloff for softer edge
+                        }
+                        
+                        // Add subtle rim enhancement at 90% radius
+                        if (normalizedDistance >= 0.85f && normalizedDistance <= 0.95f)
+                        {
+                            float rimIntensity = 1f - Mathf.Abs(normalizedDistance - 0.9f) / 0.05f;
+                            alpha += rimIntensity * 0.2f;
+                        }
+                    }
+                    
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
+                }
+            }
+            
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return texture;
+        }
+        
+        /// <summary>
+        /// Create a very soft outer glow texture
+        /// </summary>
+        private Texture2D CreateSoftGlowTexture(int size)
+        {
+            Texture2D texture = new Texture2D(size, size);
+            Color[] pixels = new Color[size * size];
+            
+            Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+            float maxRadius = size * 0.5f;
+            
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 pos = new Vector2(x, y);
+                    float distance = Vector2.Distance(pos, center);
+                    float normalizedDistance = distance / maxRadius;
+                    
+                    // Create very soft falloff
+                    float alpha = 0f;
+                    if (normalizedDistance <= 1f)
+                    {
+                        // Exponential falloff for very soft edges
+                        alpha = Mathf.Exp(-normalizedDistance * 2f) * 0.5f;
+                    }
+                    
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+            
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return texture;
+        }
+        
+        /// <summary>
+        /// Create a simple circle texture for range indicator (legacy)
         /// </summary>
         private Texture2D CreateCircleTexture(int size)
         {
@@ -781,6 +964,7 @@ namespace TowerFusion
             {
                 SetRangeIndicatorVisible(true);
                 StartCoroutine(HideRangeIndicatorAfterDelay(duration));
+                StartCoroutine(AnimateRangeIndicator(duration));
             }
         }
         
@@ -788,6 +972,78 @@ namespace TowerFusion
         {
             yield return new WaitForSeconds(delay);
             SetRangeIndicatorVisible(false);
+        }
+        
+        private System.Collections.IEnumerator AnimateRangeIndicator(float duration)
+        {
+            if (rangeIndicator == null) yield break;
+            
+            Transform mainGlow = rangeIndicator.transform.Find("MainGlow");
+            Transform outerGlow = rangeIndicator.transform.Find("OuterGlow");
+            
+            SpriteRenderer mainRenderer = mainGlow?.GetComponent<SpriteRenderer>();
+            SpriteRenderer outerRenderer = outerGlow?.GetComponent<SpriteRenderer>();
+            
+            // Fallback to single renderer if layered not found
+            if (mainRenderer == null)
+            {
+                mainRenderer = rangeIndicator.GetComponent<SpriteRenderer>();
+            }
+            
+            if (mainRenderer == null) yield break;
+            
+            float elapsed = 0f;
+            Color baseMainColor = mainRenderer.color;
+            Color baseOuterColor = outerRenderer?.color ?? Color.clear;
+            Vector3 baseMainScale = mainGlow?.localScale ?? rangeIndicator.transform.localScale;
+            Vector3 baseOuterScale = outerGlow?.localScale ?? Vector3.one;
+            
+            while (elapsed < duration && rangeIndicator.activeInHierarchy)
+            {
+                elapsed += Time.deltaTime;
+                float progress = elapsed / duration;
+                
+                // Gentle pulsing effect for glow intensity only (no size change)
+                float glowPulse = Mathf.Sin(elapsed * 2f) * 0.2f + 1f; // Pulse glow between 0.8 and 1.2
+                
+                // Fade in at start, fade out at end
+                float fadeAlpha = 1f;
+                if (progress < 0.2f)
+                {
+                    fadeAlpha = progress / 0.2f; // Fade in over first 20%
+                }
+                else if (progress > 0.8f)
+                {
+                    fadeAlpha = (1f - progress) / 0.2f; // Fade out over last 20%
+                }
+                
+                // Size remains constant - no pulsing of diameter
+                // Apply pulse to glow intensity only
+                if (mainRenderer != null)
+                {
+                    Color currentMainColor = baseMainColor;
+                    currentMainColor.a = baseMainColor.a * fadeAlpha * glowPulse;
+                    mainRenderer.color = currentMainColor;
+                }
+                
+                if (outerRenderer != null)
+                {
+                    Color currentOuterColor = baseOuterColor;
+                    currentOuterColor.a = baseOuterColor.a * fadeAlpha * glowPulse * 0.8f; // Outer glow pulses less
+                    outerRenderer.color = currentOuterColor;
+                }
+                
+                yield return null;
+            }
+            
+            // Restore original values (colors only, scale remains at correct size)
+            if (rangeIndicator != null)
+            {
+                if (mainRenderer != null)
+                    mainRenderer.color = baseMainColor;
+                if (outerRenderer != null)
+                    outerRenderer.color = baseOuterColor;
+            }
         }
         
         /// <summary>
