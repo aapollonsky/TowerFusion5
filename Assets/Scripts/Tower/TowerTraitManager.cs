@@ -391,8 +391,11 @@ namespace TowerFusion
         {
             if (target == null) return;
             
+            Debug.Log($"Applying trait effects on attack to {target.name} with {appliedTraits.Count} traits");
+            
             foreach (var trait in appliedTraits)
             {
+                Debug.Log($"Applying trait: {trait.traitName} (hasChainEffect: {trait.hasChainEffect})");
                 ApplyTraitEffect(trait, target, damage);
             }
         }
@@ -440,18 +443,22 @@ namespace TowerFusion
             // Apply chain effect
             if (trait.hasChainEffect)
             {
+                Debug.Log($"Trait '{trait.traitName}' has chain effect - applying to {target.name}");
                 ApplyChainEffect(trait, target, damage);
             }
         }
         
         private void ApplyChainEffect(TowerTrait trait, Enemy primaryTarget, float damage)
         {
-            // Find nearby enemies for chaining
+            Debug.Log($"Applying chain effect from {primaryTarget.name} with range {trait.chainRange}");
+            
+            // Find nearby enemies for chaining - use OverlapCircleAll without layer mask first
             Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(
                 primaryTarget.transform.position, 
-                trait.chainRange, 
-                LayerMask.GetMask("Enemy")
+                trait.chainRange
             );
+            
+            Debug.Log($"Found {nearbyColliders.Length} colliders in range");
             
             List<Enemy> chainTargets = new List<Enemy>();
             foreach (var collider in nearbyColliders)
@@ -460,6 +467,7 @@ namespace TowerFusion
                 if (enemy != null && enemy != primaryTarget)
                 {
                     chainTargets.Add(enemy);
+                    Debug.Log($"Found chain target: {enemy.name} at distance {Vector3.Distance(primaryTarget.transform.position, enemy.transform.position):F2}");
                 }
             }
             
@@ -471,14 +479,141 @@ namespace TowerFusion
             
             // Apply chain damage
             float chainDamage = damage * trait.chainDamageMultiplier;
+            Enemy lastTarget = primaryTarget;
+            
+            Debug.Log($"Chain targets found: {chainTargets.Count}, will deal {chainDamage} damage each");
+            
             foreach (var chainTarget in chainTargets)
             {
                 chainTarget.TakeDamage(chainDamage, DamageType.Magic); // Chain lightning is magical damage
                 
-                // Visual effect for chain
-                Debug.DrawLine(primaryTarget.transform.position, chainTarget.transform.position, Color.yellow, 0.5f);
-                Debug.Log($"Chain lightning: {chainDamage} damage to {chainTarget.name}");
+                // Create lightning visual effect
+                StartCoroutine(CreateLightningEffect(lastTarget.transform.position, chainTarget.transform.position));
+                
+                // Create a simple visual effect as backup
+                StartCoroutine(CreateSimpleLightningFlash(chainTarget.transform.position));
+                
+                // Debug visualization (this shows in Scene view)
+                Debug.DrawLine(lastTarget.transform.position, chainTarget.transform.position, Color.yellow, 2f);
+                Debug.Log($"Chain lightning: {chainDamage} damage to {chainTarget.name} from {lastTarget.name}");
+                
+                lastTarget = chainTarget;
             }
+        }
+        
+        private System.Collections.IEnumerator CreateLightningEffect(Vector3 startPos, Vector3 endPos)
+        {
+            Debug.Log($"Creating lightning effect from {startPos} to {endPos}");
+            
+            // Create temporary lightning line effect
+            GameObject lightningLine = new GameObject("LightningEffect");
+            LineRenderer lineRenderer = lightningLine.AddComponent<LineRenderer>();
+            
+            // Configure line renderer with a more visible setup
+            Material lightningMaterial = new Material(Shader.Find("Sprites/Default"));
+            lightningMaterial.color = Color.yellow;
+            lineRenderer.material = lightningMaterial;
+            lineRenderer.startWidth = 0.2f; // Make thicker for visibility
+            lineRenderer.endWidth = 0.2f;
+            lineRenderer.positionCount = 2;
+            lineRenderer.useWorldSpace = true;
+            
+            // Try to set sorting layer, but don't fail if it doesn't exist
+            try
+            {
+                lineRenderer.sortingLayerName = "Effects";
+                lineRenderer.sortingOrder = 10;
+            }
+            catch
+            {
+                // Fallback - just use a high sorting order
+                lineRenderer.sortingOrder = 100;
+            }
+            
+            // Set positions
+            lineRenderer.SetPosition(0, startPos);
+            lineRenderer.SetPosition(1, endPos);
+            
+            // Animate lightning effect
+            float duration = 0.3f;
+            float elapsed = 0f;
+            
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float alpha = 1f - (elapsed / duration);
+                Color color = Color.yellow;
+                color.a = alpha;
+                lineRenderer.material.color = color;
+                
+                // Add slight random offset for lightning effect
+                Vector3 direction = (endPos - startPos).normalized;
+                Vector3 perpendicular = new Vector3(-direction.y, direction.x, 0) * UnityEngine.Random.Range(-0.2f, 0.2f);
+                Vector3 midPoint = Vector3.Lerp(startPos, endPos, 0.5f) + perpendicular;
+                
+                lineRenderer.positionCount = 3;
+                lineRenderer.SetPosition(0, startPos);
+                lineRenderer.SetPosition(1, midPoint);
+                lineRenderer.SetPosition(2, endPos);
+                
+                yield return null;
+            }
+            
+            // Clean up
+            if (lightningLine != null)
+                DestroyImmediate(lightningLine);
+        }
+        
+        private System.Collections.IEnumerator CreateSimpleLightningFlash(Vector3 position)
+        {
+            // Create a simple white flash effect at the target position
+            GameObject flash = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            flash.transform.position = position;
+            flash.transform.localScale = Vector3.one * 0.5f;
+            
+            // Remove collider as we don't need it
+            Collider flashCollider = flash.GetComponent<Collider>();
+            if (flashCollider != null) DestroyImmediate(flashCollider);
+            
+            Collider2D flashCollider2D = flash.GetComponent<Collider2D>();
+            if (flashCollider2D != null) DestroyImmediate(flashCollider2D);
+            
+            // Set up renderer
+            Renderer renderer = flash.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.material = new Material(Shader.Find("Sprites/Default"));
+                renderer.material.color = Color.yellow;
+            }
+            
+            // Flash animation
+            float duration = 0.3f;
+            float elapsed = 0f;
+            Vector3 originalScale = flash.transform.localScale;
+            
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = elapsed / duration;
+                
+                // Scale up then down
+                float scaleMultiplier = Mathf.Sin(progress * Mathf.PI) * 2f;
+                flash.transform.localScale = originalScale * scaleMultiplier;
+                
+                // Fade out
+                if (renderer != null)
+                {
+                    Color color = Color.yellow;
+                    color.a = 1f - progress;
+                    renderer.material.color = color;
+                }
+                
+                yield return null;
+            }
+            
+            // Clean up
+            if (flash != null)
+                DestroyImmediate(flash);
         }
         
         #endregion

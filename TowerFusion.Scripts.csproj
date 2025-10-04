@@ -81,6 +81,7 @@
     <Compile Include="Assets/Scripts/Tower/Tower.cs" />
     <Compile Include="Assets/Scripts/Tower/Projectile.cs" />
     <Compile Include="Assets/Scripts/Map/MapManager.cs" />
+    <Compile Include="Assets/Scripts/Test/LightningTraitTest.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerManager.cs" />
     <Compile Include="Assets/Scripts/UI/MapSelectionUI.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerTrait.cs" />
