@@ -175,15 +175,17 @@ namespace TowerFusion
                 }
                 else
                 {
-                    // Blend colors additively
-                    combined = Color.Lerp(combined, traitColor, 0.5f);
+                    // Blend colors additively for better visibility
+                    combined = Color.Lerp(combined, traitColor, 0.6f);
                 }
                 
                 totalAlpha += trait.overlayAlpha;
             }
             
-            // Cap alpha to prevent over-saturation
-            combined.a = Mathf.Min(totalAlpha, 0.8f);
+            // Ensure minimum visibility and cap maximum
+            combined.a = Mathf.Clamp(totalAlpha, 0.3f, 0.9f);
+            
+            Debug.Log($"Combined overlay color for {name}: {combined} (from {appliedTraits.Count} traits)");
             return combined;
         }
         
@@ -199,7 +201,24 @@ namespace TowerFusion
                 overlayObj.transform.localScale = Vector3.one;
                 
                 overlayRenderer = overlayObj.AddComponent<SpriteRenderer>();
-                overlayRenderer.sortingOrder = baseRenderer.sortingOrder + 1;
+                
+                // Ensure we have a base renderer reference
+                if (baseRenderer == null)
+                    baseRenderer = GetComponent<SpriteRenderer>();
+                
+                if (baseRenderer != null)
+                {
+                    overlayRenderer.sortingOrder = baseRenderer.sortingOrder + 1;
+                    // Copy the main sprite to the overlay initially
+                    overlayRenderer.sprite = baseRenderer.sprite;
+                    Debug.Log($"Setup trait overlay for {name}: base sorting order {baseRenderer.sortingOrder}, overlay {overlayRenderer.sortingOrder}");
+                }
+                else
+                {
+                    overlayRenderer.sortingOrder = 1; // Default sorting order
+                    Debug.LogWarning($"No base SpriteRenderer found for {name} - overlay may not display correctly");
+                }
+                
                 overlayRenderer.color = Color.clear;
             }
         }
@@ -215,15 +234,82 @@ namespace TowerFusion
             }
         }
         
+        /// <summary>
+        /// Create a simple glow effect for trait visualization
+        /// </summary>
+        private void CreateTraitGlow(Color glowColor)
+        {
+            GameObject glowObj = new GameObject("TraitGlow");
+            glowObj.transform.SetParent(effectsParent);
+            glowObj.transform.localPosition = Vector3.zero;
+            glowObj.transform.localScale = Vector3.one * 1.3f; // Slightly larger than base
+            
+            SpriteRenderer glowRenderer = glowObj.AddComponent<SpriteRenderer>();
+            
+            // Use base sprite for glow shape
+            if (baseRenderer != null && baseRenderer.sprite != null)
+            {
+                glowRenderer.sprite = baseRenderer.sprite;
+            }
+            
+            // Set glow color and properties
+            glowColor.a = 0.4f;
+            glowRenderer.color = glowColor;
+            glowRenderer.sortingOrder = baseRenderer.sortingOrder - 1; // Behind base sprite
+            
+            // Add pulsing animation
+            StartCoroutine(PulseGlow(glowRenderer));
+            
+            Debug.Log($"Created trait glow effect: {glowColor}");
+        }
+        
+        /// <summary>
+        /// Animate the glow effect
+        /// </summary>
+        private System.Collections.IEnumerator PulseGlow(SpriteRenderer glowRenderer)
+        {
+            float baseAlpha = glowRenderer.color.a;
+            Color baseColor = glowRenderer.color;
+            
+            while (glowRenderer != null && appliedTraits.Count > 0)
+            {
+                float pulse = Mathf.Sin(Time.time * 2f) * 0.2f + 1f; // Pulse between 0.8 and 1.2
+                Color newColor = baseColor;
+                newColor.a = baseAlpha * pulse;
+                glowRenderer.color = newColor;
+                
+                Vector3 scale = Vector3.one * (1.2f + Mathf.Sin(Time.time * 1.5f) * 0.1f);
+                glowRenderer.transform.localScale = scale;
+                
+                yield return null;
+            }
+        }
+        
         private void ApplyTraitVisuals(TowerTrait trait)
         {
             // Update overlay color
-            overlayRenderer.color = GetCombinedOverlayColor();
+            Color newOverlayColor = GetCombinedOverlayColor();
+            overlayRenderer.color = newOverlayColor;
+            
+            Debug.Log($"Applied visual for trait '{trait.traitName}' on {name}:");
+            Debug.Log($"  - Trait color: {trait.overlayColor} (alpha: {trait.overlayAlpha})");
+            Debug.Log($"  - Final overlay color: {newOverlayColor}");
+            Debug.Log($"  - Overlay renderer active: {overlayRenderer.gameObject.activeInHierarchy}");
             
             // Apply overlay sprite if specified and we don't have one yet
             if (trait.overlaySprite != null && overlayRenderer.sprite == null)
             {
                 overlayRenderer.sprite = trait.overlaySprite;
+                Debug.Log($"  - Applied overlay sprite: {trait.overlaySprite.name}");
+            }
+            else if (trait.overlaySprite == null && overlayRenderer.sprite == null)
+            {
+                // Use the base sprite for color overlay if no specific overlay sprite
+                if (baseRenderer != null && baseRenderer.sprite != null)
+                {
+                    overlayRenderer.sprite = baseRenderer.sprite;
+                    Debug.Log($"  - Using base sprite for color overlay: {baseRenderer.sprite.name}");
+                }
             }
             
             // Add particle effects
@@ -235,7 +321,14 @@ namespace TowerFusion
                 {
                     activeEffects.Add(particles);
                     particles.Play();
+                    Debug.Log($"  - Added particle effect: {trait.effectPrefab.name}");
                 }
+            }
+            
+            // Create glow effect for first trait (to avoid multiple glows)
+            if (appliedTraits.Count == 1)
+            {
+                CreateTraitGlow(trait.overlayColor);
             }
         }
         
@@ -250,13 +343,31 @@ namespace TowerFusion
             activeEffects.Clear();
             
             // Reset overlay
-            overlayRenderer.color = Color.clear;
-            overlayRenderer.sprite = null;
+            if (overlayRenderer != null)
+            {
+                overlayRenderer.color = Color.clear;
+                overlayRenderer.sprite = null;
+            }
+            
+            // Reset base renderer to original color
+            if (baseRenderer != null)
+            {
+                baseRenderer.color = Color.white;
+            }
             
             // Reapply all trait visuals
             foreach (var trait in appliedTraits)
             {
                 ApplyTraitVisuals(trait);
+            }
+            
+            // Also apply trait color tint to base renderer for better visibility
+            if (appliedTraits.Count > 0 && baseRenderer != null)
+            {
+                Color combinedColor = GetCombinedOverlayColor();
+                Color baseColorTint = Color.Lerp(Color.white, combinedColor, 0.3f);
+                baseRenderer.color = baseColorTint;
+                Debug.Log($"Applied base color tint to {name}: {baseColorTint}");
             }
         }
         

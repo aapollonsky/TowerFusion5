@@ -72,6 +72,7 @@
     <Compile Include="Assets/Scripts/Editor/TraitSystemDebugger.cs" />
     <Compile Include="Assets/Scripts/Editor/StatusEffectColorDebugger.cs" />
     <Compile Include="Assets/Scripts/Editor/TraitSystemDemo.cs" />
+    <Compile Include="Assets/Scripts/Editor/TowerTraitVisualDebugger.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/Scripts/Editor/TowerFusion.Editor.asmdef" />
