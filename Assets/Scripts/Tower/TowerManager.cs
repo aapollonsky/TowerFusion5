@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections.Generic;
 
 namespace TowerFusion
@@ -61,6 +62,13 @@ namespace TowerFusion
         {
             if (Input.GetMouseButtonDown(0)) // Left click
             {
+                // Don't process clicks on UI elements
+                if (UnityEngine.EventSystems.EventSystem.current != null && 
+                    UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+                {
+                    return;
+                }
+                
                 Vector3 mouseWorldPos = GetMouseWorldPosition();
                 
                 if (towerToBuild != null)
@@ -378,8 +386,10 @@ namespace TowerFusion
             if (selectedTower != null)
             {
                 selectedTower.SetRangeIndicatorVisible(true);
-                OnTowerSelected?.Invoke(selectedTower);
             }
+            
+            // Always invoke the event, whether selecting or deselecting
+            OnTowerSelected?.Invoke(selectedTower);
         }
         
         /// <summary>

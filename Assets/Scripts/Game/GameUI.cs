@@ -30,6 +30,7 @@ namespace TowerFusion.UI
         [SerializeField] private TextMeshProUGUI towerStatsText;
         [SerializeField] private Button upgradeButton;
         [SerializeField] private Button sellButton;
+        [SerializeField] private Button assignTraitButton;
         [SerializeField] private TextMeshProUGUI upgradeButtonText;
         
         [Header("Trait Selection")]
@@ -51,6 +52,7 @@ namespace TowerFusion.UI
         // Trait system state
         private bool traitButtonUsedThisWave = false;
         private TowerTrait selectedTrait = null;
+        private TowerTrait availableTraitForAssignment = null;
         
         private void Start()
         {
@@ -82,6 +84,11 @@ namespace TowerFusion.UI
             if (sellButton != null)
             {
                 sellButton.onClick.AddListener(SellTower);
+            }
+            
+            if (assignTraitButton != null)
+            {
+                assignTraitButton.onClick.AddListener(AssignTraitToSelectedTower);
             }
             
             if (restartButton != null)
@@ -253,6 +260,9 @@ namespace TowerFusion.UI
                         startWaveButton.GetComponentInChildren<TextMeshProUGUI>().text = "start wave";
                         // Reset trait button for new wave
                         traitButtonUsedThisWave = false;
+                        // Clear any unused trait from previous wave
+                        availableTraitForAssignment = null;
+                        UpdateTraitAssignmentUI();
                         break;
                     case GameState.WaveInProgress:
                         startWaveButton.GetComponentInChildren<TextMeshProUGUI>().text = "waving";
@@ -272,15 +282,20 @@ namespace TowerFusion.UI
         /// </summary>
         private void OnTowerSelected(Tower tower)
         {
+            Debug.Log($"OnTowerSelected called with tower: {(tower != null ? tower.name : "null")}");
+            
             if (towerInfoPanel == null)
                 return;
             
             if (tower == null)
             {
+                Debug.Log("Hiding tower info panel (tower is null)");
                 towerInfoPanel.SetActive(false);
+                UpdateTraitAssignmentUI(); // Hide trait assignment button when no tower selected
                 return;
             }
             
+            Debug.Log("Showing tower info panel");
             towerInfoPanel.SetActive(true);
             
             // Update tower info
@@ -309,6 +324,9 @@ namespace TowerFusion.UI
                     upgradeButtonText.text = "Max Level";
                 }
             }
+            
+            // Update trait assignment UI
+            UpdateTraitAssignmentUI();
         }
         
         /// <summary>
@@ -429,12 +447,12 @@ namespace TowerFusion.UI
             if (selectedTrait == null)
                 return;
             
-            // Add trait to available traits for towers
-            // This trait will be available for assignment to towers
+            // Store trait as available for assignment
+            availableTraitForAssignment = selectedTrait;
             Debug.Log($"Trait '{selectedTrait.traitName}' is now available for assignment!");
             
-            // TODO: Add trait to tower selection system
-            // For now, we'll just log it
+            // Update UI to show trait is available
+            UpdateTraitAssignmentUI();
             
             // Hide dialog
             if (traitCardDialog != null)
@@ -481,6 +499,122 @@ namespace TowerFusion.UI
             
             // Fallback to first available trait
             return availableTraits[0];
+        }
+        
+        /// <summary>
+        /// Update UI to reflect trait assignment state
+        /// </summary>
+        private void UpdateTraitAssignmentUI()
+        {
+            if (assignTraitButton != null)
+            {
+                bool hasTraitToAssign = availableTraitForAssignment != null;
+                Tower selectedTower = TowerManager.Instance?.GetSelectedTower();
+                
+                // Debug logging
+                Debug.Log($"UpdateTraitAssignmentUI - HasTrait: {hasTraitToAssign}, SelectedTower: {(selectedTower != null ? selectedTower.name : "null")}");
+                
+                bool shouldShowButton = hasTraitToAssign && selectedTower != null;
+                assignTraitButton.gameObject.SetActive(shouldShowButton);
+                
+                if (hasTraitToAssign && selectedTower != null)
+                {
+                    var buttonText = assignTraitButton.GetComponentInChildren<TextMeshProUGUI>();
+                    if (buttonText != null)
+                    {
+                        buttonText.text = $"Apply {availableTraitForAssignment.traitName}";
+                    }
+                }
+                
+                Debug.Log($"Assign trait button active: {shouldShowButton}");
+            }
+            else
+            {
+                Debug.LogWarning("assignTraitButton is null! Make sure to assign it in GameUI inspector.");
+            }
+            
+            // Update trait button visual feedback
+            if (traitButton != null)
+            {
+                var buttonImage = traitButton.GetComponent<Image>();
+                if (buttonImage != null && availableTraitForAssignment != null)
+                {
+                    // Make the trait button glow when a trait is available for assignment
+                    buttonImage.color = Color.yellow;
+                }
+                else if (buttonImage != null)
+                {
+                    // Normal color when no trait available
+                    buttonImage.color = Color.white;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Assign the available trait to the currently selected tower
+        /// </summary>
+        private void AssignTraitToSelectedTower()
+        {
+            if (availableTraitForAssignment == null)
+            {
+                Debug.LogWarning("No trait available for assignment!");
+                return;
+            }
+            
+            // Debug tower manager state
+            if (TowerManager.Instance == null)
+            {
+                Debug.LogError("TowerManager.Instance is null! Make sure TowerManager exists in the scene.");
+                return;
+            }
+            
+            Tower selectedTower = TowerManager.Instance.GetSelectedTower();
+            Debug.Log($"Debug: TowerManager.GetSelectedTower() returned: {(selectedTower != null ? selectedTower.name : "null")}");
+            
+            if (selectedTower == null)
+            {
+                Debug.LogWarning("No tower selected for trait assignment!");
+                Debug.LogWarning("Make sure to click on a tower to select it before trying to apply traits.");
+                
+                // Try to find towers in scene as additional debug info
+                var towers = FindObjectsOfType<Tower>();
+                Debug.Log($"Debug: Found {towers.Length} towers in scene: {string.Join(", ", System.Array.ConvertAll(towers, t => t.name))}");
+                return;
+            }
+            
+            // Try to apply the trait to the selected tower
+            if (selectedTower.AddTrait(availableTraitForAssignment))
+            {
+                Debug.Log($"Successfully applied trait '{availableTraitForAssignment.traitName}' to tower '{selectedTower.TowerData.towerName}'");
+                
+                // Clear the available trait as it's been used
+                availableTraitForAssignment = null;
+                
+                // Hide the trait dialog
+                Debug.Log("Attempting to hide trait dialog...");
+                if (traitCardDialog != null)
+                {
+                    Debug.Log($"Hiding dialog GameObject: '{traitCardDialog.name}' - Currently active: {traitCardDialog.activeInHierarchy}");
+                    traitCardDialog.SetActive(false);
+                    Debug.Log($"Dialog hidden. New active state: {traitCardDialog.activeInHierarchy}");
+                }
+                else
+                {
+                    Debug.LogWarning("traitCardDialog is null! Cannot hide dialog.");
+                }
+                
+                // Update UI
+                UpdateTraitAssignmentUI();
+                
+                // Deselect tower to close the tower info panel
+                Debug.Log("Deselecting tower to close tower info panel...");
+                TowerManager.Instance.DeselectTower();
+                Debug.Log("Tower deselected.");
+            }
+            else
+            {
+                Debug.LogWarning($"Failed to apply trait '{availableTraitForAssignment.traitName}' to tower. Tower may already have this trait or reached max traits.");
+            }
         }
     }
 }
