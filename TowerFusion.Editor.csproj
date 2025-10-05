@@ -67,6 +67,7 @@
     <Compile Include="Assets/Scripts/Editor/BuildScript.cs" />
     <Compile Include="Assets/Scripts/Editor/TowerTraitFactory.cs" />
     <Compile Include="Assets/Scripts/Editor/TowerEditor.cs" />
+    <Compile Include="Assets/Scripts/Editor/TraitSystemSetup.cs" />
     <Compile Include="Assets/Scripts/Editor/TowerDataEditor.cs" />
     <Compile Include="Assets/Scripts/Editor/IceTraitTester.cs" />
     <Compile Include="Assets/Scripts/Editor/LightningTraitTester.cs" />
