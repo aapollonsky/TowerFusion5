@@ -221,10 +221,10 @@ namespace TowerFusion.UI
                 switch (gameState)
                 {
                     case GameState.Preparing:
-                        startWaveButton.GetComponentInChildren<TextMeshProUGUI>().text = "Start Wave";
+                        startWaveButton.GetComponentInChildren<TextMeshProUGUI>().text = "start wave";
                         break;
                     case GameState.WaveInProgress:
-                        startWaveButton.GetComponentInChildren<TextMeshProUGUI>().text = "Wave Active";
+                        startWaveButton.GetComponentInChildren<TextMeshProUGUI>().text = "waving";
                         break;
                 }
             }

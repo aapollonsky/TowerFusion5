@@ -260,3 +260,70 @@ This revised proposal maintains Tower Fusion Draft's innovative core while addre
 The key to success lies in **execution quality** over **feature quantity** — delivering a polished, accessible experience that gradually reveals its depth rather than overwhelming players with options from the start. By focusing on the player's journey from confusion to mastery, Tower Fusion Draft can achieve both commercial success and critical acclaim as a genuinely innovative entry in the tower defense genre.
 
 *Ready to turn chaos into strategy, one trait at a time — without accidentally corrupting your entire defense on Wave 2.*
+
+I can see that it mentions 2 basic tower types (Damage, Support) in Phase 1, then adds a third type (Utility) in Phase 2. Let me analyze what these tower types would likely be based on the game design:
+
+Damage Towers (Primary offensive units)
+Archer Tower
+Base Stats: Medium damage, medium range, medium attack speed
+Projectile Type: Arrows that travel in straight lines
+Role: Reliable single-target damage, good for most enemy types
+Cost: Low (starter tower)
+Cannon Tower
+Base Stats: High damage, short range, slow attack speed
+Projectile Type: Explosive cannonballs with small area damage
+Role: High burst damage, effective against armored enemies
+Cost: High (specialized damage dealer)
+Crossbow Tower
+Base Stats: High damage, long range, very slow attack speed
+Projectile Type: Bolts with piercing capability
+Role: Sniper-style precision damage, good for priority targets
+Cost: Medium-high
+Support Towers (Force multipliers and utility)
+Aura Tower
+Base Stats: No direct damage
+Effect: Provides damage/speed buffs to nearby towers in radius
+Role: Enhances other towers' effectiveness
+Cost: Medium (investment that pays off with multiple towers)
+Slow Tower
+Base Stats: Very low damage, medium range, fast attack speed
+Effect: Slows enemy movement speed for duration
+Role: Crowd control, gives other towers more time to attack
+Cost: Low-medium
+Shield Tower
+Base Stats: No damage
+Effect: Projects barrier that blocks enemy movement temporarily
+Role: Path manipulation, emergency crowd control
+Cost: Medium
+Utility Towers (Unlocked Phase 2)
+Gold Mine
+Base Stats: No damage
+Effect: Generates gold over time
+Role: Economic advantage for more tower building
+Cost: High (long-term investment)
+Radar Tower
+Base Stats: No damage, very long range
+Effect: Reveals invisible enemies, extends range of nearby towers
+Role: Detection and range enhancement
+Cost: Medium
+How They Work Together
+Based on the spec's trait system, here are some synergies:
+
+Early Game Combinations (Phase 1-2)
+Archer + Fire Trait: Becomes flame archer with burn DoT
+Cannon + Lightning Trait: Explosive shots that chain to nearby enemies
+Aura Tower + Amplify Trait: Boosts become even stronger (+15% more damage)
+Slow Tower + Ice Trait: Freezing effects that also make enemies brittle
+Advanced Combinations (Phase 3+)
+Crossbow + Sniper Trait: Extreme range precision shots with charge time
+Shield Tower + Barrier Trait: Enhanced blocking with longer duration
+Gold Mine + Harvest Trait: Generates gold from passive income AND kills nearby
+Design Rationale
+The spec emphasizes progressive complexity, so:
+
+Phase 1: Players learn with just Archer (damage) and Aura (support) towers
+Phase 2: Add Cannon/Crossbow for damage variety, Slow tower for active support
+Phase 3: Full roster with specialized utilities
+This matches the 60-second rule mentioned in the spec - players can quickly understand "damage tower shoots enemies, support tower helps damage tower" without overwhelming complexity.
+
+The trait system then transforms these simple bases into the complex, specialized towers that create the roguelike variety the game is designed around.
