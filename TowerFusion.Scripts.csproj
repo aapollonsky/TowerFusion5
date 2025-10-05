@@ -73,6 +73,7 @@
     <Compile Include="Assets/Scripts/Wave/WaveManager.cs" />
     <Compile Include="Assets/Scripts/Enemy/Enemy.cs" />
     <Compile Include="Assets/Scripts/Game/GameManager.cs" />
+    <Compile Include="Assets/Scripts/Test/HarvestTraitTest.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerButton.cs" />
     <Compile Include="Assets/Scripts/Map/MapData.cs" />
     <Compile Include="Assets/Scripts/UI/MapLaunchBridge.cs" />

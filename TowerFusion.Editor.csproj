@@ -70,6 +70,7 @@
     <Compile Include="Assets/Scripts/Editor/TowerDataEditor.cs" />
     <Compile Include="Assets/Scripts/Editor/IceTraitTester.cs" />
     <Compile Include="Assets/Scripts/Editor/LightningTraitTester.cs" />
+    <Compile Include="Assets/Scripts/Editor/HarvestTraitTester.cs" />
     <Compile Include="Assets/Scripts/Editor/FireTraitTester.cs" />
     <Compile Include="Assets/Scripts/Editor/TraitSystemDebugger.cs" />
     <Compile Include="Assets/Scripts/Editor/StatusEffectColorDebugger.cs" />
