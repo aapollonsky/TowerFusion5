@@ -22,6 +22,12 @@ namespace TowerFusion
         public Sprite overlaySprite; // Optional overlay sprite for the tower
         public ParticleSystem effectPrefab; // Optional particle effect
         
+        [Header("Icon Badge System")]
+        public Sprite traitBadge; // Small icon to display on tower
+        public Vector2 badgeOffset = new Vector2(1.2f, 1.2f); // Position relative to tower (increased for visibility)
+        public float badgeScale = 0.6f; // Size of the badge (increased for testing)
+        public bool animateBadge = true; // Subtle float/pulse animation
+        
         [Header("Stat Modifications")]
         public float damageMultiplier = 1f;
         public float damageBonus = 0f;

@@ -252,6 +252,189 @@ namespace TowerFusion
         }
         
         /// <summary>
+        /// Create a trait badge icon for the tower
+        /// </summary>
+        private void CreateTraitBadge(TowerTrait trait)
+        {
+            Debug.Log($"CreateTraitBadge called for trait '{trait.traitName}'");
+            
+            if (effectsParent == null)
+            {
+                Debug.LogError("effectsParent is null! Cannot create badge.");
+                return;
+            }
+            
+            // Create badge container
+            GameObject badgeObj = new GameObject($"TraitBadge_{trait.traitName}");
+            badgeObj.transform.SetParent(effectsParent);
+            Debug.Log($"  - Badge parent set to: {effectsParent.name}");
+            
+            // Position based on number of existing badges (arrange them in a small arc)
+            int badgeCount = effectsParent.childCount - 1; // -1 because this badge isn't counted yet
+            float angle = badgeCount * 45f; // Spread badges around the tower
+            Vector3 badgePosition = new Vector3(
+                Mathf.Cos(angle * Mathf.Deg2Rad) * trait.badgeOffset.x,
+                Mathf.Sin(angle * Mathf.Deg2Rad) * trait.badgeOffset.y,
+                0f
+            );
+            badgeObj.transform.localPosition = badgePosition;
+            badgeObj.transform.localScale = Vector3.one * trait.badgeScale;
+            Debug.Log($"  - Badge positioned at: {badgePosition}, scale: {trait.badgeScale}, angle: {angle}°");
+            
+            // Add SpriteRenderer for the badge icon
+            SpriteRenderer badgeRenderer = badgeObj.AddComponent<SpriteRenderer>();
+            
+            // Use assigned sprite or create a fallback based on trait name
+            if (trait.traitBadge != null)
+            {
+                badgeRenderer.sprite = trait.traitBadge;
+                Debug.Log($"  - Using assigned sprite: {trait.traitBadge.name}");
+            }
+            else
+            {
+                // Create a simple colored circle as fallback
+                Debug.Log($"  - Creating fallback sprite for '{trait.traitName}' with color {trait.overlayColor}");
+                badgeRenderer.sprite = CreateFallbackBadgeSprite(trait);
+                Debug.Log($"  - Fallback sprite created: {(badgeRenderer.sprite != null ? "Success" : "Failed")}");
+            }
+            
+            // Ensure badges render on top of everything
+            if (baseRenderer != null)
+            {
+                badgeRenderer.sortingLayerName = baseRenderer.sortingLayerName;
+                badgeRenderer.sortingOrder = baseRenderer.sortingOrder + 10; // Well above tower
+                Debug.Log($"  - Badge render setup: layer={badgeRenderer.sortingLayerName}, order={badgeRenderer.sortingOrder} (tower order: {baseRenderer.sortingOrder})");
+            }
+            else
+            {
+                badgeRenderer.sortingLayerName = "Default";
+                badgeRenderer.sortingOrder = 100;
+                Debug.Log($"  - Badge render setup (no baseRenderer): layer={badgeRenderer.sortingLayerName}, order={badgeRenderer.sortingOrder}");
+            }
+            
+            // Add subtle glow background
+            GameObject glowObj = new GameObject("BadgeGlow");
+            glowObj.transform.SetParent(badgeObj.transform);
+            glowObj.transform.localPosition = Vector3.zero;
+            glowObj.transform.localScale = Vector3.one * 1.2f; // Slightly bigger than the badge
+            
+            SpriteRenderer glowRenderer = glowObj.AddComponent<SpriteRenderer>();
+            // Create a simple circle sprite for glow (you might want to use a pre-made glow sprite)
+            if (baseRenderer != null && baseRenderer.sprite != null)
+            {
+                glowRenderer.sprite = baseRenderer.sprite; // Temporary - use tower sprite as glow base
+            }
+            glowRenderer.color = new Color(trait.overlayColor.r, trait.overlayColor.g, trait.overlayColor.b, 0.3f);
+            
+            // Ensure glow renders behind badge but above tower
+            if (baseRenderer != null)
+            {
+                glowRenderer.sortingLayerName = baseRenderer.sortingLayerName;
+                glowRenderer.sortingOrder = baseRenderer.sortingOrder + 9; // Behind badge, above tower
+            }
+            else
+            {
+                glowRenderer.sortingLayerName = "Default";
+                glowRenderer.sortingOrder = 99;
+            }
+            
+            // Add animation if enabled
+            if (trait.animateBadge)
+            {
+                StartCoroutine(AnimateTraitBadge(badgeObj.transform, glowRenderer));
+            }
+            
+            Debug.Log($"Created trait badge '{trait.traitName}' at local position {badgePosition} with scale {trait.badgeScale}");
+            Debug.Log($"  - World position: {badgeObj.transform.position}");
+            Debug.Log($"  - Sorting layer: {badgeRenderer.sortingLayerName}, Order: {badgeRenderer.sortingOrder}");
+            Debug.Log($"  - Badge sprite: {(badgeRenderer.sprite != null ? badgeRenderer.sprite.name : "null")}");
+        }
+        
+        /// <summary>
+        /// Animate trait badges with subtle float and pulse effects
+        /// </summary>
+        private System.Collections.IEnumerator AnimateTraitBadge(Transform badgeTransform, SpriteRenderer glowRenderer)
+        {
+            Vector3 basePosition = badgeTransform.localPosition;
+            Vector3 baseScale = badgeTransform.localScale;
+            Color baseGlowColor = glowRenderer.color;
+            
+            while (badgeTransform != null && appliedTraits.Count > 0)
+            {
+                float time = Time.time;
+                
+                // Gentle float animation
+                Vector3 floatOffset = new Vector3(0f, Mathf.Sin(time * 1.5f) * 0.1f, 0f);
+                badgeTransform.localPosition = basePosition + floatOffset;
+                
+                // Subtle scale pulse
+                float scalePulse = 1f + Mathf.Sin(time * 2f) * 0.05f;
+                badgeTransform.localScale = baseScale * scalePulse;
+                
+                // Glow pulse
+                float glowPulse = 0.3f + Mathf.Sin(time * 1.8f) * 0.1f;
+                Color glowColor = baseGlowColor;
+                glowColor.a = glowPulse;
+                glowRenderer.color = glowColor;
+                
+                yield return null;
+            }
+        }
+        
+        /// <summary>
+        /// Create a simple fallback badge sprite for traits without assigned icons
+        /// </summary>
+        private Sprite CreateFallbackBadgeSprite(TowerTrait trait)
+        {
+            // Create a larger, more visible 64x64 texture with a colored circle and border
+            int size = 64;
+            Texture2D texture = new Texture2D(size, size);
+            Color[] pixels = new Color[size * size];
+            
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+            float outerRadius = size / 2f - 2f;
+            float innerRadius = outerRadius - 4f; // Border thickness
+            
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 pos = new Vector2(x, y);
+                    float distance = Vector2.Distance(pos, center);
+                    
+                    if (distance <= outerRadius)
+                    {
+                        Color color;
+                        if (distance > innerRadius)
+                        {
+                            // White border for visibility
+                            color = Color.white;
+                        }
+                        else
+                        {
+                            // Trait color center with full opacity
+                            color = trait.overlayColor;
+                            color.a = 1f;
+                        }
+                        pixels[y * size + x] = color;
+                    }
+                    else
+                    {
+                        pixels[y * size + x] = Color.clear;
+                    }
+                }
+            }
+            
+            texture.SetPixels(pixels);
+            texture.Apply();
+            
+            // Create sprite from texture
+            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+            Debug.Log($"Created fallback badge sprite for '{trait.traitName}' - Size: {size}x{size}, Color: {trait.overlayColor}");
+            return sprite;
+        }
+        
+        /// <summary>
         /// Create a simple glow effect for trait visualization
         /// </summary>
         private void CreateTraitGlow(Color glowColor)
@@ -304,29 +487,17 @@ namespace TowerFusion
         
         private void ApplyTraitVisuals(TowerTrait trait)
         {
-            // Update overlay color
-            Color newOverlayColor = GetCombinedOverlayColor();
-            overlayRenderer.color = newOverlayColor;
-            
             Debug.Log($"Applied visual for trait '{trait.traitName}' on {name}:");
-            Debug.Log($"  - Trait color: {trait.overlayColor} (alpha: {trait.overlayAlpha})");
-            Debug.Log($"  - Final overlay color: {newOverlayColor}");
-            Debug.Log($"  - Overlay renderer active: {overlayRenderer.gameObject.activeInHierarchy}");
             
-            // Apply overlay sprite if specified and we don't have one yet
-            if (trait.overlaySprite != null && overlayRenderer.sprite == null)
+            // Always create trait badge icon (with fallback if no sprite assigned)
+            CreateTraitBadge(trait);
+            if (trait.traitBadge != null)
             {
-                overlayRenderer.sprite = trait.overlaySprite;
-                Debug.Log($"  - Applied overlay sprite: {trait.overlaySprite.name}");
+                Debug.Log($"  - Created trait badge: {trait.traitBadge.name}");
             }
-            else if (trait.overlaySprite == null && overlayRenderer.sprite == null)
+            else
             {
-                // Use the base sprite for color overlay if no specific overlay sprite
-                if (baseRenderer != null && baseRenderer.sprite != null)
-                {
-                    overlayRenderer.sprite = baseRenderer.sprite;
-                    Debug.Log($"  - Using base sprite for color overlay: {baseRenderer.sprite.name}");
-                }
+                Debug.Log($"  - Created fallback badge for '{trait.traitName}'");
             }
             
             // Add particle effects
@@ -342,10 +513,10 @@ namespace TowerFusion
                 }
             }
             
-            // Create glow effect for first trait (to avoid multiple glows)
-            if (appliedTraits.Count == 1)
+            // Hide color overlay system (keeping it for fallback)
+            if (overlayRenderer != null)
             {
-                CreateTraitGlow(trait.overlayColor);
+                overlayRenderer.gameObject.SetActive(false);
             }
         }
         
@@ -359,11 +530,25 @@ namespace TowerFusion
             }
             activeEffects.Clear();
             
-            // Reset overlay
+            // Clear existing trait badges
+            if (effectsParent != null)
+            {
+                for (int i = effectsParent.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = effectsParent.GetChild(i);
+                    if (child.name.StartsWith("TraitBadge_"))
+                    {
+                        DestroyImmediate(child.gameObject);
+                    }
+                }
+            }
+            
+            // Reset overlay (keeping for fallback)
             if (overlayRenderer != null)
             {
                 overlayRenderer.color = Color.clear;
                 overlayRenderer.sprite = null;
+                overlayRenderer.gameObject.SetActive(false);
             }
             
             // Reset base renderer to original color

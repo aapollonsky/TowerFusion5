@@ -306,7 +306,11 @@ namespace TowerFusion.UI
             
             if (towerStatsText != null)
             {
-                towerStatsText.text = $"Damage: {tower.ModifiedDamage:F1}\\nRange: {tower.ModifiedRange:F1}\\nLevel: {tower.UpgradeLevel + 1}";
+                // Format damage to show whole numbers when possible, otherwise 1 decimal place
+                string damageText = tower.ModifiedDamage % 1 == 0 ? $"{tower.ModifiedDamage:F0}" : $"{tower.ModifiedDamage:F1}";
+                string rangeText = tower.ModifiedRange % 1 == 0 ? $"{tower.ModifiedRange:F0}" : $"{tower.ModifiedRange:F1}";
+                
+                towerStatsText.text = $"Damage: {damageText}\nRange: {rangeText}\nLevel: {tower.UpgradeLevel + 1}";
             }
             
             // Update upgrade button
