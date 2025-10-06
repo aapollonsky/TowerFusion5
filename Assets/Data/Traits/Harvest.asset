@@ -14,12 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   traitName: Harvest
   description: +1 gold per kill
-  traitIcon: {fileID: 0}
+  traitIcon: {fileID: 21300000, guid: 3cd2a8755bd2844adb31a96d7c9b610d, type: 3}
   category: 2
   overlayColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   overlayAlpha: 0.2
   overlaySprite: {fileID: 0}
   effectPrefab: {fileID: 0}
+  traitBadge: {fileID: 21300000, guid: 3cd2a8755bd2844adb31a96d7c9b610d, type: 3}
+  badgeOffset: {x: 1, y: 1.2}
+  badgeScale: 0.4
+  animateBadge: 1
   damageMultiplier: 1
   damageBonus: 0
   rangeMultiplier: 1

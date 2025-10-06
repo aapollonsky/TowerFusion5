@@ -24,9 +24,9 @@ namespace TowerFusion
         
         [Header("Icon Badge System")]
         public Sprite traitBadge; // Small icon to display on tower
-        public Vector2 badgeOffset = new Vector2(1.2f, 1.2f); // Position relative to tower (increased for visibility)
-        public float badgeScale = 0.6f; // Size of the badge (increased for testing)
-        public bool animateBadge = true; // Subtle float/pulse animation
+        public Vector2 badgeOffset = new Vector2(0.8f, 0.8f); // Offset from tower center for badge placement
+        public float badgeScale = 1.2f; // Size of the badge (increased for better visibility)
+        public bool animateBadge = true; // Whether the badge should animate (float/pulse)
         
         [Header("Stat Modifications")]
         public float damageMultiplier = 1f;

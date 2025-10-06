@@ -14,12 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   traitName: Sniper
   description: +100% range, +2 second charge time
-  traitIcon: {fileID: 0}
+  traitIcon: {fileID: 21300000, guid: a50676827581b4eedadc4a12f9addff4, type: 3}
   category: 1
   overlayColor: {r: 0, g: 1, b: 0, a: 1}
   overlayAlpha: 0.3
   overlaySprite: {fileID: 0}
   effectPrefab: {fileID: 0}
+  traitBadge: {fileID: 21300000, guid: a50676827581b4eedadc4a12f9addff4, type: 3}
+  badgeOffset: {x: 1, y: 1.2}
+  badgeScale: 0.4
+  animateBadge: 1
   damageMultiplier: 1
   damageBonus: 0
   rangeMultiplier: 2

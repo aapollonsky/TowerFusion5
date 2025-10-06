@@ -278,8 +278,13 @@ namespace TowerFusion
                 0f
             );
             badgeObj.transform.localPosition = badgePosition;
-            badgeObj.transform.localScale = Vector3.one * trait.badgeScale;
-            Debug.Log($"  - Badge positioned at: {badgePosition}, scale: {trait.badgeScale}, angle: {angle}°");
+            
+            // Ensure minimum badge scale for visibility
+            float actualScale = trait.badgeScale > 0 ? trait.badgeScale : 1.2f;
+            if (actualScale < 1.0f) actualScale = 1.2f; // Force larger badges
+            
+            badgeObj.transform.localScale = Vector3.one * actualScale;
+            Debug.Log($"  - Badge positioned at: {badgePosition}, trait scale: {trait.badgeScale}, actual scale used: {actualScale}, angle: {angle}°");
             
             // Add SpriteRenderer for the badge icon
             SpriteRenderer badgeRenderer = badgeObj.AddComponent<SpriteRenderer>();
@@ -312,36 +317,10 @@ namespace TowerFusion
                 Debug.Log($"  - Badge render setup (no baseRenderer): layer={badgeRenderer.sortingLayerName}, order={badgeRenderer.sortingOrder}");
             }
             
-            // Add subtle glow background
-            GameObject glowObj = new GameObject("BadgeGlow");
-            glowObj.transform.SetParent(badgeObj.transform);
-            glowObj.transform.localPosition = Vector3.zero;
-            glowObj.transform.localScale = Vector3.one * 1.2f; // Slightly bigger than the badge
-            
-            SpriteRenderer glowRenderer = glowObj.AddComponent<SpriteRenderer>();
-            // Create a simple circle sprite for glow (you might want to use a pre-made glow sprite)
-            if (baseRenderer != null && baseRenderer.sprite != null)
-            {
-                glowRenderer.sprite = baseRenderer.sprite; // Temporary - use tower sprite as glow base
-            }
-            glowRenderer.color = new Color(trait.overlayColor.r, trait.overlayColor.g, trait.overlayColor.b, 0.3f);
-            
-            // Ensure glow renders behind badge but above tower
-            if (baseRenderer != null)
-            {
-                glowRenderer.sortingLayerName = baseRenderer.sortingLayerName;
-                glowRenderer.sortingOrder = baseRenderer.sortingOrder + 9; // Behind badge, above tower
-            }
-            else
-            {
-                glowRenderer.sortingLayerName = "Default";
-                glowRenderer.sortingOrder = 99;
-            }
-            
             // Add animation if enabled
             if (trait.animateBadge)
             {
-                StartCoroutine(AnimateTraitBadge(badgeObj.transform, glowRenderer));
+                StartCoroutine(AnimateTraitBadge(badgeObj.transform));
             }
             
             Debug.Log($"Created trait badge '{trait.traitName}' at local position {badgePosition} with scale {trait.badgeScale}");
@@ -353,11 +332,10 @@ namespace TowerFusion
         /// <summary>
         /// Animate trait badges with subtle float and pulse effects
         /// </summary>
-        private System.Collections.IEnumerator AnimateTraitBadge(Transform badgeTransform, SpriteRenderer glowRenderer)
+        private System.Collections.IEnumerator AnimateTraitBadge(Transform badgeTransform)
         {
             Vector3 basePosition = badgeTransform.localPosition;
             Vector3 baseScale = badgeTransform.localScale;
-            Color baseGlowColor = glowRenderer.color;
             
             while (badgeTransform != null && appliedTraits.Count > 0)
             {
@@ -371,58 +349,64 @@ namespace TowerFusion
                 float scalePulse = 1f + Mathf.Sin(time * 2f) * 0.05f;
                 badgeTransform.localScale = baseScale * scalePulse;
                 
-                // Glow pulse
-                float glowPulse = 0.3f + Mathf.Sin(time * 1.8f) * 0.1f;
-                Color glowColor = baseGlowColor;
-                glowColor.a = glowPulse;
-                glowRenderer.color = glowColor;
-                
                 yield return null;
             }
         }
         
         /// <summary>
-        /// Create a simple fallback badge sprite for traits without assigned icons
+        /// Create a trait-specific badge sprite based on the trait name
         /// </summary>
         private Sprite CreateFallbackBadgeSprite(TowerTrait trait)
         {
-            // Create a larger, more visible 64x64 texture with a colored circle and border
             int size = 64;
             Texture2D texture = new Texture2D(size, size);
             Color[] pixels = new Color[size * size];
             
-            Vector2 center = new Vector2(size / 2f, size / 2f);
-            float outerRadius = size / 2f - 2f;
-            float innerRadius = outerRadius - 4f; // Border thickness
-            
-            for (int y = 0; y < size; y++)
+            // Initialize with transparent background
+            for (int i = 0; i < pixels.Length; i++)
             {
-                for (int x = 0; x < size; x++)
-                {
-                    Vector2 pos = new Vector2(x, y);
-                    float distance = Vector2.Distance(pos, center);
-                    
-                    if (distance <= outerRadius)
-                    {
-                        Color color;
-                        if (distance > innerRadius)
-                        {
-                            // White border for visibility
-                            color = Color.white;
-                        }
-                        else
-                        {
-                            // Trait color center with full opacity
-                            color = trait.overlayColor;
-                            color.a = 1f;
-                        }
-                        pixels[y * size + x] = color;
-                    }
-                    else
-                    {
-                        pixels[y * size + x] = Color.clear;
-                    }
-                }
+                pixels[i] = Color.clear;
+            }
+            
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+            Color traitColor = trait.overlayColor;
+            traitColor.a = 1f;
+            
+            // Create trait-specific icons based on trait name
+            string traitName = trait.traitName.ToLower();
+            
+            if (traitName.Contains("ice") || traitName.Contains("frost") || traitName.Contains("freeze"))
+            {
+                CreateSnowflakeIcon(pixels, size, center, traitColor);
+            }
+            else if (traitName.Contains("fire") || traitName.Contains("burn") || traitName.Contains("flame"))
+            {
+                CreateFireIcon(pixels, size, center, traitColor);
+            }
+            else if (traitName.Contains("lightning") || traitName.Contains("electric") || traitName.Contains("shock"))
+            {
+                CreateLightningIcon(pixels, size, center, traitColor);
+            }
+            else if (traitName.Contains("poison") || traitName.Contains("toxic") || traitName.Contains("venom"))
+            {
+                CreatePoisonIcon(pixels, size, center, traitColor);
+            }
+            else if (traitName.Contains("harvest") || traitName.Contains("gold") || traitName.Contains("coin"))
+            {
+                CreateCoinIcon(pixels, size, center, traitColor);
+            }
+            else if (traitName.Contains("speed") || traitName.Contains("fast") || traitName.Contains("rapid"))
+            {
+                CreateSpeedIcon(pixels, size, center, traitColor);
+            }
+            else if (traitName.Contains("power") || traitName.Contains("damage") || traitName.Contains("strength"))
+            {
+                CreatePowerIcon(pixels, size, center, traitColor);
+            }
+            else
+            {
+                // Default: simple diamond shape
+                CreateDiamondIcon(pixels, size, center, traitColor);
             }
             
             texture.SetPixels(pixels);
@@ -430,8 +414,278 @@ namespace TowerFusion
             
             // Create sprite from texture
             Sprite sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
-            Debug.Log($"Created fallback badge sprite for '{trait.traitName}' - Size: {size}x{size}, Color: {trait.overlayColor}");
+            Debug.Log($"Created trait-specific badge for '{trait.traitName}' - Type: {GetIconType(traitName)}");
             return sprite;
+        }
+        
+        private string GetIconType(string traitName)
+        {
+            if (traitName.Contains("ice") || traitName.Contains("frost") || traitName.Contains("freeze")) return "Snowflake";
+            if (traitName.Contains("fire") || traitName.Contains("burn") || traitName.Contains("flame")) return "Fire";
+            if (traitName.Contains("lightning") || traitName.Contains("electric") || traitName.Contains("shock")) return "Lightning";
+            if (traitName.Contains("poison") || traitName.Contains("toxic") || traitName.Contains("venom")) return "Poison";
+            if (traitName.Contains("harvest") || traitName.Contains("gold") || traitName.Contains("coin")) return "Coin";
+            if (traitName.Contains("speed") || traitName.Contains("fast") || traitName.Contains("rapid")) return "Speed";
+            if (traitName.Contains("power") || traitName.Contains("damage") || traitName.Contains("strength")) return "Power";
+            return "Diamond";
+        }
+        
+        private void CreateSnowflakeIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw a 6-pointed snowflake
+            float armLength = size * 0.35f;
+            
+            // Draw 6 arms at 60-degree intervals
+            for (int arm = 0; arm < 6; arm++)
+            {
+                float angle = arm * 60f * Mathf.Deg2Rad;
+                Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                
+                // Main arm
+                DrawLine(pixels, size, center, center + direction * armLength, color, 2);
+                
+                // Small branches
+                Vector2 branchPoint = center + direction * (armLength * 0.6f);
+                Vector2 branchDir1 = new Vector2(Mathf.Cos(angle + 0.5f), Mathf.Sin(angle + 0.5f));
+                Vector2 branchDir2 = new Vector2(Mathf.Cos(angle - 0.5f), Mathf.Sin(angle - 0.5f));
+                DrawLine(pixels, size, branchPoint, branchPoint + branchDir1 * (armLength * 0.3f), color, 1);
+                DrawLine(pixels, size, branchPoint, branchPoint + branchDir2 * (armLength * 0.3f), color, 1);
+            }
+            
+            // Center dot
+            DrawCircle(pixels, size, center, 3, color);
+        }
+        
+        private void CreateFireIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw flame shape
+            int points = 8;
+            Vector2[] flamePoints = new Vector2[points];
+            
+            for (int i = 0; i < points; i++)
+            {
+                float angle = (i / (float)points) * 2f * Mathf.PI;
+                float radius = size * 0.25f + Mathf.Sin(angle * 3f) * size * 0.1f; // Wavy edge
+                if (i % 2 == 1) radius *= 1.2f; // Alternate radius for flame effect
+                
+                flamePoints[i] = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            }
+            
+            // Fill the flame shape
+            FillPolygon(pixels, size, flamePoints, color);
+            
+            // Add inner flame detail
+            Color innerColor = new Color(1f, 1f, 0.8f, 1f); // Lighter center
+            DrawCircle(pixels, size, center, (int)(size * 0.15f), innerColor);
+        }
+        
+        private void CreateLightningIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw zigzag lightning bolt
+            Vector2[] lightningPoints = new Vector2[]
+            {
+                center + new Vector2(-size * 0.1f, size * 0.3f),
+                center + new Vector2(size * 0.05f, size * 0.1f),
+                center + new Vector2(-size * 0.05f, size * 0.1f),
+                center + new Vector2(size * 0.15f, -size * 0.1f),
+                center + new Vector2(0f, -size * 0.1f),
+                center + new Vector2(size * 0.1f, -size * 0.3f)
+            };
+            
+            // Draw thick lightning bolt
+            for (int i = 0; i < lightningPoints.Length - 1; i++)
+            {
+                DrawLine(pixels, size, lightningPoints[i], lightningPoints[i + 1], color, 3);
+            }
+        }
+        
+        private void CreatePoisonIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw skull-like poison symbol (simplified drop shape with cross)
+            DrawCircle(pixels, size, center, (int)(size * 0.25f), color);
+            
+            // Draw poison drop dripping down
+            Vector2 dropBottom = center + new Vector2(0, -size * 0.3f);
+            DrawLine(pixels, size, center + new Vector2(0, -size * 0.25f), dropBottom, color, 3);
+            
+            // Small X in the center
+            Vector2 crossSize = new Vector2(size * 0.1f, size * 0.1f);
+            DrawLine(pixels, size, center - crossSize, center + crossSize, Color.black, 2);
+            DrawLine(pixels, size, center + new Vector2(-crossSize.x, crossSize.y), center + new Vector2(crossSize.x, -crossSize.y), Color.black, 2);
+        }
+        
+        private void CreateCoinIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw coin with $ symbol
+            DrawCircle(pixels, size, center, (int)(size * 0.3f), color);
+            DrawCircle(pixels, size, center, (int)(size * 0.28f), Color.black); // Border
+            DrawCircle(pixels, size, center, (int)(size * 0.25f), color);
+            
+            // Draw $ symbol
+            Color symbolColor = Color.black;
+            // Vertical line
+            DrawLine(pixels, size, center + new Vector2(0, size * 0.2f), center + new Vector2(0, -size * 0.2f), symbolColor, 2);
+            // S curves (simplified as horizontal lines)
+            DrawLine(pixels, size, center + new Vector2(-size * 0.1f, size * 0.1f), center + new Vector2(size * 0.1f, size * 0.1f), symbolColor, 2);
+            DrawLine(pixels, size, center + new Vector2(-size * 0.1f, -size * 0.1f), center + new Vector2(size * 0.1f, -size * 0.1f), symbolColor, 2);
+        }
+        
+        private void CreateSpeedIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw arrow pointing right with motion lines
+            Vector2[] arrowPoints = new Vector2[]
+            {
+                center + new Vector2(-size * 0.2f, 0f),
+                center + new Vector2(size * 0.2f, 0f),
+                center + new Vector2(size * 0.1f, size * 0.1f),
+                center + new Vector2(size * 0.2f, 0f),
+                center + new Vector2(size * 0.1f, -size * 0.1f)
+            };
+            
+            // Draw arrow shaft
+            DrawLine(pixels, size, arrowPoints[0], arrowPoints[1], color, 3);
+            // Draw arrowhead
+            DrawLine(pixels, size, arrowPoints[1], arrowPoints[2], color, 3);
+            DrawLine(pixels, size, arrowPoints[1], arrowPoints[4], color, 3);
+            
+            // Motion lines behind arrow
+            for (int i = 1; i <= 3; i++)
+            {
+                Vector2 lineStart = center + new Vector2(-size * 0.3f - i * size * 0.05f, 0f);
+                Vector2 lineEnd = lineStart + new Vector2(size * 0.1f, 0f);
+                DrawLine(pixels, size, lineStart, lineEnd, color, 1);
+            }
+        }
+        
+        private void CreatePowerIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw burst/explosion pattern
+            int rays = 8;
+            for (int i = 0; i < rays; i++)
+            {
+                float angle = (i / (float)rays) * 2f * Mathf.PI;
+                Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                
+                float length = (i % 2 == 0) ? size * 0.3f : size * 0.2f; // Alternating lengths
+                DrawLine(pixels, size, center, center + direction * length, color, 2);
+            }
+            
+            // Center star
+            DrawCircle(pixels, size, center, (int)(size * 0.08f), color);
+        }
+        
+        private void CreateDiamondIcon(Color[] pixels, int size, Vector2 center, Color color)
+        {
+            // Draw diamond shape
+            Vector2[] diamondPoints = new Vector2[]
+            {
+                center + new Vector2(0, size * 0.25f),       // Top
+                center + new Vector2(size * 0.2f, 0),        // Right
+                center + new Vector2(0, -size * 0.25f),      // Bottom
+                center + new Vector2(-size * 0.2f, 0)        // Left
+            };
+            
+            FillPolygon(pixels, size, diamondPoints, color);
+        }
+        
+        // Helper methods for drawing
+        private void DrawLine(Color[] pixels, int size, Vector2 start, Vector2 end, Color color, int thickness)
+        {
+            Vector2 dir = (end - start).normalized;
+            float distance = Vector2.Distance(start, end);
+            
+            for (float t = 0; t <= distance; t += 0.5f)
+            {
+                Vector2 pos = start + dir * t;
+                DrawPixelThick(pixels, size, (int)pos.x, (int)pos.y, color, thickness);
+            }
+        }
+        
+        private void DrawCircle(Color[] pixels, int size, Vector2 center, int radius, Color color)
+        {
+            for (int y = -radius; y <= radius; y++)
+            {
+                for (int x = -radius; x <= radius; x++)
+                {
+                    if (x * x + y * y <= radius * radius)
+                    {
+                        int px = (int)(center.x + x);
+                        int py = (int)(center.y + y);
+                        if (px >= 0 && px < size && py >= 0 && py < size)
+                        {
+                            pixels[py * size + px] = color;
+                        }
+                    }
+                }
+            }
+        }
+        
+        private void FillPolygon(Color[] pixels, int size, Vector2[] points, Color color)
+        {
+            // Simple polygon fill - just fill the bounding area for now
+            float minX = points[0].x, maxX = points[0].x;
+            float minY = points[0].y, maxY = points[0].y;
+            
+            foreach (var point in points)
+            {
+                minX = Mathf.Min(minX, point.x);
+                maxX = Mathf.Max(maxX, point.x);
+                minY = Mathf.Min(minY, point.y);
+                maxY = Mathf.Max(maxY, point.y);
+            }
+            
+            for (int y = (int)minY; y <= (int)maxY; y++)
+            {
+                for (int x = (int)minX; x <= (int)maxX; x++)
+                {
+                    if (x >= 0 && x < size && y >= 0 && y < size)
+                    {
+                        // Simple point-in-polygon test (simplified)
+                        Vector2 testPoint = new Vector2(x, y);
+                        if (IsPointInPolygon(testPoint, points))
+                        {
+                            pixels[y * size + x] = color;
+                        }
+                    }
+                }
+            }
+        }
+        
+        private bool IsPointInPolygon(Vector2 point, Vector2[] polygon)
+        {
+            bool inside = false;
+            int j = polygon.Length - 1;
+            
+            for (int i = 0; i < polygon.Length; i++)
+            {
+                Vector2 pi = polygon[i];
+                Vector2 pj = polygon[j];
+                
+                if (((pi.y > point.y) != (pj.y > point.y)) &&
+                    (point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y) + pi.x))
+                {
+                    inside = !inside;
+                }
+                j = i;
+            }
+            
+            return inside;
+        }
+        
+        private void DrawPixelThick(Color[] pixels, int size, int x, int y, Color color, int thickness)
+        {
+            for (int dy = -thickness / 2; dy <= thickness / 2; dy++)
+            {
+                for (int dx = -thickness / 2; dx <= thickness / 2; dx++)
+                {
+                    int px = x + dx;
+                    int py = y + dy;
+                    if (px >= 0 && px < size && py >= 0 && py < size)
+                    {
+                        pixels[py * size + px] = color;
+                    }
+                }
+            }
         }
         
         /// <summary>
