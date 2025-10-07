@@ -15,6 +15,28 @@ MonoBehaviour:
   enemyName: BasicEnemy
   description: 
   enemySprite: {fileID: 7482667652216324306, guid: a32ea7d0897504b2eb4e70b043978e7e, type: 3}
+  directionalSprites:
+    right: {fileID: 21300000, guid: a2702df1f613c4f13a6676a7afd8eef5, type: 3}
+    downRight: {fileID: 21300000, guid: c838d99c8cf7348548461279ab358686, type: 3}
+    down: {fileID: 21300000, guid: 7380d549bab7148f284407b5926f892f, type: 3}
+    downLeft: {fileID: 21300000, guid: c5d980dade2d040e69c4e25c2ba6ec43, type: 3}
+    left: {fileID: 21300000, guid: 213b488c0d7d34359a822ca8ca08b2ac, type: 3}
+    upLeft: {fileID: 21300000, guid: 00c0fd7b8e8d94d028073855f75a8fc0, type: 3}
+    up: {fileID: 21300000, guid: 549dfb0653c0440cc87849c2e745693c, type: 3}
+    upRight: {fileID: 21300000, guid: 1980472ee52e040dbbb0428c8a48db50, type: 3}
+    useOnly4Directions: 0
+    useAnimation: 0
+    animationFrames:
+      frameRate: 8
+      looping: 1
+      rightFrames: []
+      downRightFrames: []
+      downFrames: []
+      downLeftFrames: []
+      leftFrames: []
+      upLeftFrames: []
+      upFrames: []
+      upRightFrames: []
   maxHealth: 100
   moveSpeed: 2
   goldReward: 10

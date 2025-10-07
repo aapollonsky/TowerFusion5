@@ -35,6 +35,13 @@ namespace TowerFusion
         // Movement
         private Vector3 targetPosition;
         private Vector3[] pathPoints;
+        private Vector3 lastPosition;
+        private float currentMovementAngle;
+        
+        // Sprite animation
+        private float animationTimer = 0f;
+        private int currentFrameIndex = 0;
+        private Sprite[] currentAnimationFrames;
         
         // Events
         public System.Action<Enemy> OnEnemyKilled;
@@ -93,13 +100,24 @@ namespace TowerFusion
         /// </summary>
         private void SetupVisuals()
         {
-            if (spriteRenderer != null && enemyData.enemySprite != null)
+            if (spriteRenderer != null)
             {
-                spriteRenderer.sprite = enemyData.enemySprite;
+                // Try to use directional sprites first, fallback to single sprite
+                if (enemyData.directionalSprites != null && enemyData.directionalSprites.HasDirectionalSprites())
+                {
+                    // Start with right-facing sprite (default direction)
+                    UpdateDirectionalSprite(0f); // 0° = facing right
+                }
+                else if (enemyData.enemySprite != null)
+                {
+                    spriteRenderer.sprite = enemyData.enemySprite;
+                }
+                
                 spriteRenderer.color = enemyData.enemyColor;
             }
             
             transform.localScale = enemyData.scale;
+            lastPosition = transform.position;
             
             // Setup health bar
             UpdateHealthBar();
@@ -135,12 +153,21 @@ namespace TowerFusion
             if (pathPoints == null || pathPoints.Length == 0)
                 return;
             
+            // Store last position for direction calculation
+            Vector3 previousPosition = transform.position;
+            
             // Move towards target
             Vector3 direction = (targetPosition - transform.position).normalized;
             float currentSpeed = enemyData.moveSpeed * speedMultiplier;
             float moveDistance = currentSpeed * Time.deltaTime;
             
             transform.position += direction * moveDistance;
+            
+            // Update sprite direction based on movement
+            UpdateMovementDirection(previousPosition);
+            
+            // Update sprite animation if enabled
+            UpdateSpriteAnimation();
             
             // Check if reached current target
             if (Vector3.Distance(transform.position, targetPosition) <= 0.1f)
@@ -155,6 +182,115 @@ namespace TowerFusion
                 else
                 {
                     targetPosition = pathPoints[currentPathIndex];
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Update movement direction and sprite orientation
+        /// </summary>
+        private void UpdateMovementDirection(Vector3 previousPosition)
+        {
+            Vector3 movementVector = transform.position - previousPosition;
+            
+            // Only update if we're actually moving
+            if (movementVector.magnitude > 0.01f)
+            {
+                // Calculate angle in degrees (0° = right, 90° = down, 180° = left, 270° = up)
+                float angle = Mathf.Atan2(movementVector.y, movementVector.x) * Mathf.Rad2Deg;
+                
+                // Convert to Unity's coordinate system where down is positive Y
+                angle = -angle; // Flip Y axis
+                
+                currentMovementAngle = angle;
+                
+                // Update sprite to match movement direction
+                UpdateDirectionalSprite(currentMovementAngle);
+                
+                lastPosition = transform.position;
+            }
+        }
+        
+        /// <summary>
+        /// Update sprite based on movement direction
+        /// </summary>
+        private void UpdateDirectionalSprite(float angleDegrees)
+        {
+            if (spriteRenderer == null || enemyData.directionalSprites == null)
+                return;
+            
+            if (!enemyData.directionalSprites.HasDirectionalSprites())
+            {
+                // Fall back to single sprite if no directional sprites
+                if (enemyData.enemySprite != null)
+                {
+                    spriteRenderer.sprite = enemyData.enemySprite;
+                }
+                return;
+            }
+            
+            // Check if animation is enabled
+            if (enemyData.directionalSprites.useAnimation && 
+                enemyData.directionalSprites.animationFrames != null)
+            {
+                // Update animation frames for current direction
+                Sprite[] frames = enemyData.directionalSprites.animationFrames.GetFramesForAngle(angleDegrees);
+                if (frames != null && frames.Length > 0)
+                {
+                    currentAnimationFrames = frames;
+                    // Don't update sprite here - let UpdateSpriteAnimation handle it
+                    return;
+                }
+            }
+            
+            // Use static directional sprite
+            Sprite directionSprite = enemyData.directionalSprites.GetSpriteForAngle(angleDegrees);
+            if (directionSprite != null)
+            {
+                spriteRenderer.sprite = directionSprite;
+            }
+        }
+        
+        /// <summary>
+        /// Update sprite animation if enabled
+        /// </summary>
+        private void UpdateSpriteAnimation()
+        {
+            if (!enemyData.directionalSprites.useAnimation || 
+                currentAnimationFrames == null || 
+                currentAnimationFrames.Length == 0 ||
+                spriteRenderer == null)
+                return;
+            
+            // Update animation timer
+            animationTimer += Time.deltaTime;
+            
+            float frameRate = enemyData.directionalSprites.animationFrames.frameRate;
+            float frameDuration = 1f / frameRate;
+            
+            if (animationTimer >= frameDuration)
+            {
+                animationTimer = 0f;
+                currentFrameIndex++;
+                
+                // Handle looping
+                if (currentFrameIndex >= currentAnimationFrames.Length)
+                {
+                    if (enemyData.directionalSprites.animationFrames.looping)
+                    {
+                        currentFrameIndex = 0;
+                    }
+                    else
+                    {
+                        currentFrameIndex = currentAnimationFrames.Length - 1; // Stay on last frame
+                    }
+                }
+                
+                // Update sprite to current frame
+                if (currentFrameIndex < currentAnimationFrames.Length && 
+                    currentAnimationFrames[currentFrameIndex] != null)
+                {
+                    spriteRenderer.sprite = currentAnimationFrames[currentFrameIndex];
                 }
             }
         }
@@ -298,6 +434,23 @@ namespace TowerFusion
             float distance = currentSpeed * timeAhead;
             
             return transform.position + direction * distance;
+        }
+        
+        /// <summary>
+        /// Manually set sprite direction (useful for testing or special cases)
+        /// </summary>
+        public void SetSpriteDirection(float angleDegrees)
+        {
+            currentMovementAngle = angleDegrees;
+            UpdateDirectionalSprite(angleDegrees);
+        }
+        
+        /// <summary>
+        /// Get current movement angle in degrees
+        /// </summary>
+        public float GetMovementAngle()
+        {
+            return currentMovementAngle;
         }
         
         /// <summary>
