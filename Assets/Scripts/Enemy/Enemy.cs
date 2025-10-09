@@ -105,12 +105,20 @@ namespace TowerFusion
                 // Try to use directional sprites first, fallback to single sprite
                 if (enemyData.directionalSprites != null && enemyData.directionalSprites.HasDirectionalSprites())
                 {
+                    // Initialize animation state
+                    currentFrameIndex = 0;
+                    animationTimer = 0f;
+                    
                     // Start with right-facing sprite (default direction)
+                    currentMovementAngle = 0f; // Initialize angle
                     UpdateDirectionalSprite(0f); // 0° = facing right
+                    
+                    Debug.Log($"Initialized directional sprites for {enemyData.enemyName}: useAnimation={enemyData.directionalSprites.useAnimation}");
                 }
                 else if (enemyData.enemySprite != null)
                 {
                     spriteRenderer.sprite = enemyData.enemySprite;
+                    Debug.Log($"Using single sprite for {enemyData.enemyName}");
                 }
                 
                 spriteRenderer.color = enemyData.enemyColor;
@@ -143,6 +151,12 @@ namespace TowerFusion
                 return;
             
             MoveAlongPath();
+            
+            // Always update animation, even if not moving
+            if (enemyData.directionalSprites.useAnimation)
+            {
+                UpdateSpriteAnimation();
+            }
         }
         
         /// <summary>
@@ -165,9 +179,6 @@ namespace TowerFusion
             
             // Update sprite direction based on movement
             UpdateMovementDirection(previousPosition);
-            
-            // Update sprite animation if enabled
-            UpdateSpriteAnimation();
             
             // Check if reached current target
             if (Vector3.Distance(transform.position, targetPosition) <= 0.1f)
@@ -238,8 +249,20 @@ namespace TowerFusion
                 if (frames != null && frames.Length > 0)
                 {
                     currentAnimationFrames = frames;
-                    // Don't update sprite here - let UpdateSpriteAnimation handle it
+                    currentFrameIndex = 0; // Reset to first frame when direction changes
+                    animationTimer = 0f; // Reset timer
+                    Debug.Log($"Set animation frames for {enemyData.enemyName}: {frames.Length} frames at angle {angleDegrees}");
+                    
+                    // Set initial frame
+                    if (frames[0] != null)
+                    {
+                        spriteRenderer.sprite = frames[0];
+                    }
                     return;
+                }
+                else
+                {
+                    Debug.Log($"No animation frames found for {enemyData.enemyName} at angle {angleDegrees}");
                 }
             }
             
@@ -256,11 +279,23 @@ namespace TowerFusion
         /// </summary>
         private void UpdateSpriteAnimation()
         {
-            if (!enemyData.directionalSprites.useAnimation || 
-                currentAnimationFrames == null || 
-                currentAnimationFrames.Length == 0 ||
-                spriteRenderer == null)
+            if (!enemyData.directionalSprites.useAnimation)
+            {
+                Debug.Log($"Animation disabled for {enemyData.enemyName}");
                 return;
+            }
+            
+            if (currentAnimationFrames == null || currentAnimationFrames.Length == 0)
+            {
+                Debug.Log($"No animation frames for {enemyData.enemyName} at angle {currentMovementAngle}");
+                return;
+            }
+            
+            if (spriteRenderer == null)
+            {
+                Debug.Log($"No sprite renderer for {enemyData.enemyName}");
+                return;
+            }
             
             // Update animation timer
             animationTimer += Time.deltaTime;
@@ -271,6 +306,7 @@ namespace TowerFusion
             if (animationTimer >= frameDuration)
             {
                 animationTimer = 0f;
+                int previousFrameIndex = currentFrameIndex;
                 currentFrameIndex++;
                 
                 // Handle looping
@@ -291,6 +327,11 @@ namespace TowerFusion
                     currentAnimationFrames[currentFrameIndex] != null)
                 {
                     spriteRenderer.sprite = currentAnimationFrames[currentFrameIndex];
+                    Debug.Log($"Animation frame updated for {enemyData.enemyName}: {previousFrameIndex} -> {currentFrameIndex} ({currentAnimationFrames.Length} total frames, rate: {frameRate})");
+                }
+                else
+                {
+                    Debug.LogWarning($"Invalid animation frame for {enemyData.enemyName}: index {currentFrameIndex}, frames length: {currentAnimationFrames.Length}");
                 }
             }
         }
@@ -451,6 +492,25 @@ namespace TowerFusion
         public float GetMovementAngle()
         {
             return currentMovementAngle;
+        }
+        
+        /// <summary>
+        /// Force start animation for testing (call this from inspector or debug)
+        /// </summary>
+        [ContextMenu("Force Start Animation")]
+        public void ForceStartAnimation()
+        {
+            if (enemyData.directionalSprites.useAnimation && 
+                enemyData.directionalSprites.animationFrames != null)
+            {
+                // Force right direction animation for testing
+                SetSpriteDirection(0f); // Right direction
+                Debug.Log($"Forced animation start for {enemyData.enemyName}");
+            }
+            else
+            {
+                Debug.Log($"Cannot start animation for {enemyData.enemyName}: useAnimation={enemyData.directionalSprites.useAnimation}, animationFrames={(enemyData.directionalSprites.animationFrames != null ? "assigned" : "null")}");
+            }
         }
         
         /// <summary>
