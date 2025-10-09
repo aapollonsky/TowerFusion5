@@ -15,10 +15,10 @@ MonoBehaviour:
   waveName: Wave1
   waveNumber: 1
   enemyGroups:
-  - enemyType: {fileID: 11400000, guid: 6925f158d70764bc396624d540d3ec15, type: 2}
-    count: 4
+  - enemyType: {fileID: 11400000, guid: dfe49b183d4fc4a7fb5d225e05c9d206, type: 2}
+    count: 8
     delayBeforeGroup: 1
-  - enemyType: {fileID: 11400000, guid: 6925f158d70764bc396624d540d3ec15, type: 2}
+  - enemyType: {fileID: 11400000, guid: dfe49b183d4fc4a7fb5d225e05c9d206, type: 2}
     count: 3
     delayBeforeGroup: 2
   timeBetweenGroups: 2

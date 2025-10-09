@@ -15,6 +15,76 @@ MonoBehaviour:
   enemyName: Crawler
   description: 
   enemySprite: {fileID: 3625043607559282579, guid: 5a8abf8ca97674a3b94ad72ac45bc21d, type: 3}
+  directionalSprites:
+    right: {fileID: 21300000, guid: 5d56a6570918d485fb11d93f48ce1194, type: 3}
+    downRight: {fileID: 21300000, guid: f5cb31afc34454da2b63efa87f7f1286, type: 3}
+    down: {fileID: 21300000, guid: 6a8eff1c4221548f4b35ca26921cf9a4, type: 3}
+    downLeft: {fileID: 21300000, guid: 319ccc0d934ba4b5c8b269a0b416bd9f, type: 3}
+    left: {fileID: 21300000, guid: 22c719f8ce0164081a759ffe7a0bfea7, type: 3}
+    upLeft: {fileID: 21300000, guid: 7a716da44fc4847f2b975ac3427475df, type: 3}
+    up: {fileID: 21300000, guid: b49f672678409436ba9fbafa8c2cf9c1, type: 3}
+    upRight: {fileID: 21300000, guid: f8d562c79d00345aebf9695a0f141614, type: 3}
+    useOnly4Directions: 0
+    useAnimation: 0
+    animationFrames:
+      frameRate: 6
+      looping: 1
+      rightFrames:
+      - {fileID: 21300000, guid: 43728486d995842578647258f4063d9e, type: 3}
+      - {fileID: 21300000, guid: acc0993f3a2004b28a2130960852f596, type: 3}
+      - {fileID: 21300000, guid: 6363f0b246b2e4f37861f3d301a0107a, type: 3}
+      - {fileID: 21300000, guid: 4cdb757593ab042f4baae8ef2acf14fe, type: 3}
+      - {fileID: 21300000, guid: 17826087949ea45ba89386d3cf1f8d3b, type: 3}
+      - {fileID: 21300000, guid: 4c826220f477d4614a6948fe3ff4cf9a, type: 3}
+      downRightFrames:
+      - {fileID: 21300000, guid: 778d1c58bc90b4a679ba0dd5edc90c4f, type: 3}
+      - {fileID: 21300000, guid: 4de20bde78966402ea2d5f1c35b0627d, type: 3}
+      - {fileID: 21300000, guid: e65b85543855d4e8ba5311377d73664c, type: 3}
+      - {fileID: 21300000, guid: 18df7924945d74159806c7aa785748f5, type: 3}
+      - {fileID: 21300000, guid: a953ad3a79d7845fd9d9ea8dabafa84e, type: 3}
+      - {fileID: 21300000, guid: ab7dc91386232413ca887242116ddfaf, type: 3}
+      downFrames:
+      - {fileID: 21300000, guid: 402867065450c4629b05fd8f55dd704f, type: 3}
+      - {fileID: 21300000, guid: 1519da350ce234565af60eb9ae544674, type: 3}
+      - {fileID: 21300000, guid: bfe0d3f57e229442cb7342abcd75b964, type: 3}
+      - {fileID: 21300000, guid: 5e4bf344343cf4ad0bcc769455c85987, type: 3}
+      - {fileID: 21300000, guid: 4a5a90cc0d137472898cbf3a1b96f6fa, type: 3}
+      - {fileID: 21300000, guid: 6fe6c30a6cc62437a9a77f8e8dd6a457, type: 3}
+      downLeftFrames:
+      - {fileID: 0}
+      - {fileID: 0}
+      - {fileID: 0}
+      - {fileID: 0}
+      - {fileID: 0}
+      - {fileID: 0}
+      leftFrames:
+      - {fileID: 21300000, guid: 9841e15dd97fb451cab235046c2b6238, type: 3}
+      - {fileID: 21300000, guid: de7cc91bae799471ebacba6cba80e41c, type: 3}
+      - {fileID: 21300000, guid: b4230141e15814ca689f752015babea8, type: 3}
+      - {fileID: 21300000, guid: 94e5b89cc6c1340c69e47888c78a7b80, type: 3}
+      - {fileID: 21300000, guid: 9636c0ebcbcd040ada6887035cc75360, type: 3}
+      - {fileID: 21300000, guid: 3f5f55b804ee14bfd98b19ce7441f7c1, type: 3}
+      upLeftFrames:
+      - {fileID: 21300000, guid: 0c31555428d7c4ab99d7f12c2d287b67, type: 3}
+      - {fileID: 21300000, guid: d972f8e558b894343ae4c6451a61337a, type: 3}
+      - {fileID: 21300000, guid: 3b3e153336e174cadb9474b25bdb1d43, type: 3}
+      - {fileID: 21300000, guid: a0e6844421d994ff8ad5c2207babc20e, type: 3}
+      - {fileID: 21300000, guid: babe495a3b79c46808a801e398030ced, type: 3}
+      - {fileID: 21300000, guid: f15b823d3c54d4e09b04d14df5799fe1, type: 3}
+      upFrames:
+      - {fileID: 21300000, guid: c29e463cc4fbe445883812e8bea1ba37, type: 3}
+      - {fileID: 21300000, guid: e1ed126dc6e32452bbd20ce0c2de640f, type: 3}
+      - {fileID: 21300000, guid: 165c6cacc5d0548aa95b324d583dc90a, type: 3}
+      - {fileID: 21300000, guid: ba5451a8e8c544306a46e554e0daa86b, type: 3}
+      - {fileID: 21300000, guid: bf762afc6b0e7466bb7a61405fdf864a, type: 3}
+      - {fileID: 21300000, guid: 7a37ac58e935f46e09f6488e3ffcd85b, type: 3}
+      upRightFrames:
+      - {fileID: 21300000, guid: 6d386dd9edeac48df855f987cbf0083a, type: 3}
+      - {fileID: 21300000, guid: 7e668060de5ca4049b527491f0f7a327, type: 3}
+      - {fileID: 21300000, guid: 7a0ab8e72ce124a6082a8d4f548e8d68, type: 3}
+      - {fileID: 21300000, guid: 943522908161449cd923889de461f956, type: 3}
+      - {fileID: 21300000, guid: d2a6810f40b904593b0ff027bbbf7be1, type: 3}
+      - {fileID: 21300000, guid: da409853e4d1a42e5b98eded6e6f1589, type: 3}
   maxHealth: 150
   moveSpeed: 1
   goldReward: 15
