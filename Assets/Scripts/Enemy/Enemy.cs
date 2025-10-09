@@ -142,6 +142,16 @@ namespace TowerFusion
             {
                 transform.position = MapManager.Instance.GetEnemySpawnPoint();
                 targetPosition = pathPoints[0];
+                
+                // Immediately set initial direction towards first waypoint
+                Vector3 initialDirection = (targetPosition - transform.position).normalized;
+                if (initialDirection.magnitude > 0.1f)
+                {
+                    float initialAngle = Mathf.Atan2(initialDirection.y, initialDirection.x) * Mathf.Rad2Deg;
+                    initialAngle = -initialAngle; // Flip Y axis
+                    currentMovementAngle = initialAngle;
+                    UpdateDirectionalSprite(currentMovementAngle);
+                }
             }
         }
         
@@ -193,6 +203,16 @@ namespace TowerFusion
                 else
                 {
                     targetPosition = pathPoints[currentPathIndex];
+                    
+                    // Immediately update sprite direction to face the new target
+                    Vector3 newDirection = (targetPosition - transform.position).normalized;
+                    if (newDirection.magnitude > 0.1f)
+                    {
+                        float newAngle = Mathf.Atan2(newDirection.y, newDirection.x) * Mathf.Rad2Deg;
+                        newAngle = -newAngle; // Flip Y axis
+                        currentMovementAngle = newAngle;
+                        UpdateDirectionalSprite(currentMovementAngle);
+                    }
                 }
             }
         }
@@ -202,21 +222,40 @@ namespace TowerFusion
         /// </summary>
         private void UpdateMovementDirection(Vector3 previousPosition)
         {
+            // Use target direction for immediate response, fallback to actual movement
+            Vector3 targetDirection = (targetPosition - transform.position).normalized;
             Vector3 movementVector = transform.position - previousPosition;
             
-            // Only update if we're actually moving
-            if (movementVector.magnitude > 0.01f)
+            Vector3 directionToUse = Vector3.zero;
+            
+            // Use target direction if we have a clear target and are moving towards it
+            if (targetDirection.magnitude > 0.1f && Vector3.Distance(transform.position, targetPosition) > 0.1f)
+            {
+                directionToUse = targetDirection;
+            }
+            // Otherwise use actual movement if we moved enough
+            else if (movementVector.magnitude > 0.001f) // Reduced threshold for more responsiveness
+            {
+                directionToUse = movementVector.normalized;
+            }
+            
+            if (directionToUse != Vector3.zero)
             {
                 // Calculate angle in degrees (0° = right, 90° = down, 180° = left, 270° = up)
-                float angle = Mathf.Atan2(movementVector.y, movementVector.x) * Mathf.Rad2Deg;
+                float angle = Mathf.Atan2(directionToUse.y, directionToUse.x) * Mathf.Rad2Deg;
                 
                 // Convert to Unity's coordinate system where down is positive Y
                 angle = -angle; // Flip Y axis
                 
-                currentMovementAngle = angle;
-                
-                // Update sprite to match movement direction
-                UpdateDirectionalSprite(currentMovementAngle);
+                // Only update if direction changed significantly (reduce jitter)
+                float angleDifference = Mathf.Abs(Mathf.DeltaAngle(currentMovementAngle, angle));
+                if (angleDifference > 10f) // 10-degree threshold to prevent jitter
+                {
+                    currentMovementAngle = angle;
+                    
+                    // Update sprite to match movement direction
+                    UpdateDirectionalSprite(currentMovementAngle);
+                }
                 
                 lastPosition = transform.position;
             }
@@ -251,7 +290,6 @@ namespace TowerFusion
                     currentAnimationFrames = frames;
                     currentFrameIndex = 0; // Reset to first frame when direction changes
                     animationTimer = 0f; // Reset timer
-                    Debug.Log($"Set animation frames for {enemyData.enemyName}: {frames.Length} frames at angle {angleDegrees}");
                     
                     // Set initial frame
                     if (frames[0] != null)
@@ -259,10 +297,6 @@ namespace TowerFusion
                         spriteRenderer.sprite = frames[0];
                     }
                     return;
-                }
-                else
-                {
-                    Debug.Log($"No animation frames found for {enemyData.enemyName} at angle {angleDegrees}");
                 }
             }
             
@@ -279,23 +313,11 @@ namespace TowerFusion
         /// </summary>
         private void UpdateSpriteAnimation()
         {
-            if (!enemyData.directionalSprites.useAnimation)
-            {
-                Debug.Log($"Animation disabled for {enemyData.enemyName}");
+            if (!enemyData.directionalSprites.useAnimation || 
+                currentAnimationFrames == null || 
+                currentAnimationFrames.Length == 0 ||
+                spriteRenderer == null)
                 return;
-            }
-            
-            if (currentAnimationFrames == null || currentAnimationFrames.Length == 0)
-            {
-                Debug.Log($"No animation frames for {enemyData.enemyName} at angle {currentMovementAngle}");
-                return;
-            }
-            
-            if (spriteRenderer == null)
-            {
-                Debug.Log($"No sprite renderer for {enemyData.enemyName}");
-                return;
-            }
             
             // Update animation timer
             animationTimer += Time.deltaTime;
@@ -327,11 +349,6 @@ namespace TowerFusion
                     currentAnimationFrames[currentFrameIndex] != null)
                 {
                     spriteRenderer.sprite = currentAnimationFrames[currentFrameIndex];
-                    Debug.Log($"Animation frame updated for {enemyData.enemyName}: {previousFrameIndex} -> {currentFrameIndex} ({currentAnimationFrames.Length} total frames, rate: {frameRate})");
-                }
-                else
-                {
-                    Debug.LogWarning($"Invalid animation frame for {enemyData.enemyName}: index {currentFrameIndex}, frames length: {currentAnimationFrames.Length}");
                 }
             }
         }
