@@ -19,7 +19,7 @@ MonoBehaviour:
     right: {fileID: 21300000, guid: a2702df1f613c4f13a6676a7afd8eef5, type: 3}
     downRight: {fileID: 21300000, guid: c838d99c8cf7348548461279ab358686, type: 3}
     down: {fileID: 21300000, guid: 7380d549bab7148f284407b5926f892f, type: 3}
-    downLeft: {fileID: 21300000, guid: c5d980dade2d040e69c4e25c2ba6ec43, type: 3}
+    downLeft: {fileID: -1157846092, guid: e645147e050a04d268e570b4dafa5a2d, type: 3}
     left: {fileID: 21300000, guid: 213b488c0d7d34359a822ca8ca08b2ac, type: 3}
     upLeft: {fileID: 21300000, guid: 00c0fd7b8e8d94d028073855f75a8fc0, type: 3}
     up: {fileID: 21300000, guid: 549dfb0653c0440cc87849c2e745693c, type: 3}
@@ -32,7 +32,11 @@ MonoBehaviour:
       rightFrames: []
       downRightFrames: []
       downFrames: []
-      downLeftFrames: []
+      downLeftFrames:
+      - {fileID: 1801397552, guid: e645147e050a04d268e570b4dafa5a2d, type: 3}
+      - {fileID: 265241966, guid: e645147e050a04d268e570b4dafa5a2d, type: 3}
+      - {fileID: -1764566524, guid: e645147e050a04d268e570b4dafa5a2d, type: 3}
+      - {fileID: -1157846092, guid: e645147e050a04d268e570b4dafa5a2d, type: 3}
       leftFrames: []
       upLeftFrames: []
       upFrames: []
