@@ -23,10 +23,10 @@ MonoBehaviour:
   targetingMode: 0
   canTargetFlying: 1
   canTargetGround: 1
-  projectilePrefab: {fileID: 1418450216715675238, guid: 485405b0cc0244e419e833f40527cf89, type: 3}
-  projectileSpeed: 10
+  projectilePrefab: {fileID: 8227023207271147314, guid: 3d22261a028c34002bc8d9562fa63e61, type: 3}
+  projectileSpeed: 15
   isHitscan: 0
-  hasSplashDamage: 0
+  hasSplashDamage: 1
   splashRadius: 1
   splashDamageMultiplier: 0.5
   hasSlowEffect: 0

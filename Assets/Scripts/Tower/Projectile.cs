@@ -304,7 +304,12 @@ namespace TowerFusion
         {
             if (impactEffectPrefab != null)
             {
-                Instantiate(impactEffectPrefab, transform.position, Quaternion.identity);
+                GameObject effect = Instantiate(impactEffectPrefab, transform.position, Quaternion.identity);
+                Debug.Log($"[Impact] Created effect at {transform.position} - {Time.frameCount}");
+            }
+            else
+            {
+                Debug.LogWarning($"[Impact] No impact effect prefab assigned to {gameObject.name}!");
             }
         }
         

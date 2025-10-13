@@ -66,10 +66,12 @@
   <ItemGroup>
     <Compile Include="Assets/Editor/CreateMainScene.cs" />
     <Compile Include="Assets/Editor/CreateMapSelectorScene.cs" />
+    <Compile Include="Assets/Editor/CreateImpactEffect.cs" />
     <Compile Include="Assets/Editor/CreateProjectilePrefab.cs" />
     <Compile Include="Assets/Editor/CreateTowerButtonPrefab.cs" />
     <Compile Include="Assets/Editor/MapDataGizmoDrawer.cs" />
     <Compile Include="Assets/Editor/MapDataEditor.cs" />
+    <Compile Include="Assets/Editor/ImpactEffectInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Lib/Editor/Localization/commontypes.ko.txt" />

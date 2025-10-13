@@ -164,5 +164,5 @@ MonoBehaviour:
   spriteRenderer: {fileID: 0}
   rb2D: {fileID: 0}
   projectileCollider: {fileID: 0}
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 8697942961624761582, guid: fc7e12c539a764fc196a49eafcb2edfe, type: 3}
   trailEffectPrefab: {fileID: 0}
