@@ -20,18 +20,156 @@ namespace TowerFusion.Editor
                 AssetDatabase.CreateFolder("Assets/Data", "Traits");
             }
             
-            CreateFireTrait(traitsPath);
-            CreateIceTrait(traitsPath);
-            CreateLightningTrait(traitsPath);
-            CreateSniperTrait(traitsPath);
-            CreateHarvestTrait(traitsPath);
-            CreateExplosionTrait(traitsPath);
-            CreateEarthTrait(traitsPath);
+            // Check which traits already exist
+            bool fireExists = AssetDatabase.LoadAssetAtPath<TowerTrait>($"{traitsPath}/Fire.asset") != null;
+            bool iceExists = AssetDatabase.LoadAssetAtPath<TowerTrait>($"{traitsPath}/Ice.asset") != null;
+            bool lightningExists = AssetDatabase.LoadAssetAtPath<TowerTrait>($"{traitsPath}/Lightning.asset") != null;
+            bool sniperExists = AssetDatabase.LoadAssetAtPath<TowerTrait>($"{traitsPath}/Sniper.asset") != null;
+            bool harvestExists = AssetDatabase.LoadAssetAtPath<TowerTrait>($"{traitsPath}/Harvest.asset") != null;
+            bool explosionExists = AssetDatabase.LoadAssetAtPath<TowerTrait>($"{traitsPath}/Explosion.asset") != null;
+            bool earthExists = AssetDatabase.LoadAssetAtPath<TowerTrait>($"{traitsPath}/Earth.asset") != null;
+            
+            // Only create traits that don't exist
+            if (!fireExists) CreateFireTrait(traitsPath);
+            if (!iceExists) CreateIceTrait(traitsPath);
+            if (!lightningExists) CreateLightningTrait(traitsPath);
+            if (!sniperExists) CreateSniperTrait(traitsPath);
+            if (!harvestExists) CreateHarvestTrait(traitsPath);
+            if (!explosionExists) CreateExplosionTrait(traitsPath);
+            if (!earthExists) CreateEarthTrait(traitsPath);
             
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             
-            Debug.Log("Created default tower traits in " + traitsPath);
+            int created = 0;
+            if (!fireExists) created++;
+            if (!iceExists) created++;
+            if (!lightningExists) created++;
+            if (!sniperExists) created++;
+            if (!harvestExists) created++;
+            if (!explosionExists) created++;
+            if (!earthExists) created++;
+            
+            if (created > 0)
+            {
+                Debug.Log($"Created {created} new tower traits in {traitsPath}");
+            }
+            else
+            {
+                Debug.Log("All traits already exist. No new traits created.");
+            }
+        }
+        
+        [MenuItem("Tools/Tower Fusion/Update Earth Trait Only")]
+        public static void UpdateEarthTraitOnly()
+        {
+            // Check Resources folder first (where traits should be for runtime loading)
+            string resourcesPath = "Assets/Resources/Traits";
+            string dataPath = "Assets/Data/Traits";
+            
+            string earthPathInResources = $"{resourcesPath}/Earth.asset";
+            string earthPathInData = $"{dataPath}/Earth.asset";
+            
+            TowerTrait existingEarth = null;
+            string foundPath = "";
+            
+            // Try to find Earth trait in Resources folder first
+            existingEarth = AssetDatabase.LoadAssetAtPath<TowerTrait>(earthPathInResources);
+            if (existingEarth != null)
+            {
+                foundPath = earthPathInResources;
+                Debug.Log($"Found Earth trait in Resources folder: {foundPath}");
+            }
+            else
+            {
+                // Try Data folder as fallback
+                existingEarth = AssetDatabase.LoadAssetAtPath<TowerTrait>(earthPathInData);
+                if (existingEarth != null)
+                {
+                    foundPath = earthPathInData;
+                    Debug.Log($"Found Earth trait in Data folder: {foundPath}");
+                    Debug.LogWarning("Earth trait is in Data folder - it should be in Resources for runtime loading!");
+                }
+            }
+            
+            if (existingEarth != null)
+            {
+                // Update existing Earth trait
+                existingEarth.description = "Hit enemy becomes black disk trap (3s) - other enemies fall in and die";
+                existingEarth.trapDuration = 3f;
+                existingEarth.trapRadius = 1f;
+                existingEarth.overlayColor = new Color(0.6f, 0.4f, 0.2f);
+                existingEarth.overlayAlpha = 0.4f;
+                
+                EditorUtility.SetDirty(existingEarth);
+                AssetDatabase.SaveAssets();
+                
+                Debug.Log($"<color=green>✓ Updated Earth trait at {foundPath}</color>");
+                Debug.Log("Changes: First hit converts enemy to black disk trap, other enemies fall in and die");
+                
+                // If trait was in Data folder, move it to Resources
+                if (foundPath == earthPathInData)
+                {
+                    Debug.Log("Moving Earth trait to Resources folder...");
+                    
+                    // Ensure Resources/Traits folder exists
+                    if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+                    {
+                        AssetDatabase.CreateFolder("Assets", "Resources");
+                    }
+                    if (!AssetDatabase.IsValidFolder(resourcesPath))
+                    {
+                        AssetDatabase.CreateFolder("Assets/Resources", "Traits");
+                    }
+                    
+                    string moveError = AssetDatabase.MoveAsset(earthPathInData, earthPathInResources);
+                    if (string.IsNullOrEmpty(moveError))
+                    {
+                        Debug.Log($"<color=green>✓ Moved Earth trait to {earthPathInResources}</color>");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to move Earth trait: {moveError}");
+                    }
+                }
+            }
+            else
+            {
+                // Create new Earth trait directly in Resources folder
+                Debug.Log("Earth trait not found. Creating new one in Resources folder...");
+                
+                // Ensure Resources/Traits folder exists
+                if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+                {
+                    AssetDatabase.CreateFolder("Assets", "Resources");
+                }
+                if (!AssetDatabase.IsValidFolder(resourcesPath))
+                {
+                    AssetDatabase.CreateFolder("Assets/Resources", "Traits");
+                }
+                
+                CreateEarthTrait(resourcesPath);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"<color=green>✓ Created new Earth trait at {earthPathInResources}</color>");
+            }
+            
+            AssetDatabase.Refresh();
+            
+            // Verify the trait is loadable at runtime
+            Debug.Log("\n<color=cyan>=== Verifying Runtime Loading ===</color>");
+            TowerTrait runtimeEarth = Resources.Load<TowerTrait>("Traits/Earth");
+            if (runtimeEarth != null)
+            {
+                Debug.Log($"<color=green>✓ Earth trait verified! Can be loaded at runtime</color>");
+                Debug.Log($"  Name: {runtimeEarth.traitName}");
+                Debug.Log($"  Description: {runtimeEarth.description}");
+                Debug.Log($"  Duration: {runtimeEarth.trapDuration}s");
+            }
+            else
+            {
+                Debug.LogError("<color=red>✗ Failed to load Earth trait via Resources.Load!</color>");
+                Debug.LogError("The trait may not be in the correct Resources folder structure.");
+            }
         }
         
         private static void CreateFireTrait(string path)
@@ -165,12 +303,12 @@ namespace TowerFusion.Editor
             var trait = ScriptableObject.CreateInstance<TowerTrait>();
             trait.name = "Earth";
             trait.traitName = "Earth";
-            trait.description = "Turns hit enemy into ground trap (4 seconds, 1 unit radius)";
+            trait.description = "Hit enemy becomes black disk trap (3s) - other enemies fall in and die";
             trait.category = TraitCategory.Elemental;
             
             // Effects
             trait.hasEarthTrapEffect = true;
-            trait.trapDuration = 4f;
+            trait.trapDuration = 3f;
             trait.trapRadius = 1f;
             
             // Visual

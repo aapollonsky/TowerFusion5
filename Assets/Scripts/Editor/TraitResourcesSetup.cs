@@ -131,8 +131,8 @@ namespace TowerFusion.Editor
         {
             Debug.Log("<b>=== Complete Trait Setup ===</b>");
             
-            // Step 1: Create default traits
-            Debug.Log("\n<color=yellow>Step 1: Creating default traits...</color>");
+            // Step 1: Create default traits (only creates missing ones)
+            Debug.Log("\n<color=yellow>Step 1: Creating missing default traits...</color>");
             TowerTraitFactory.CreateDefaultTraits();
             
             // Step 2: Move to Resources
@@ -144,6 +144,36 @@ namespace TowerFusion.Editor
             ListAllTraits();
             
             Debug.Log("\n<color=green><b>✓ Complete! Your traits are ready to use in-game.</b></color>");
+        }
+        
+        [MenuItem("Tools/Tower Fusion/Fix: Update Earth Trait Only")]
+        public static void UpdateEarthTraitOnly()
+        {
+            Debug.Log("<b>=== Updating Earth Trait Only ===</b>");
+            
+            // Step 1: Update only Earth trait (will also move to Resources if needed)
+            Debug.Log("\n<color=yellow>Step 1: Updating Earth trait and ensuring it's in Resources...</color>");
+            TowerTraitFactory.UpdateEarthTraitOnly();
+            
+            // Step 2: Verify it's accessible at runtime
+            Debug.Log("\n<color=yellow>Step 2: Final verification...</color>");
+            TowerTrait earthTrait = Resources.Load<TowerTrait>("Traits/Earth");
+            if (earthTrait != null)
+            {
+                Debug.Log($"<color=green>✓✓✓ Success! Earth trait is ready to use!</color>");
+                Debug.Log($"<color=green>  Location: Assets/Resources/Traits/Earth.asset</color>");
+                Debug.Log($"  Duration: {earthTrait.trapDuration}s");
+                Debug.Log($"  Radius: {earthTrait.trapRadius}");
+                Debug.Log($"  Description: {earthTrait.description}");
+                Debug.Log("\n<color=cyan>Next: Enter Play Mode and test the black disk trap!</color>");
+            }
+            else
+            {
+                Debug.LogError("<color=red>✗ Earth trait could not be verified!</color>");
+                Debug.LogError("Try running: Tools > Tower Fusion > Setup Traits for Runtime Loading");
+            }
+            
+            Debug.Log("\n<color=green><b>✓ Earth trait update complete!</b></color>");
         }
     }
 }

@@ -847,11 +847,15 @@ namespace TowerFusion
         {
             if (target == null) return;
             
-            Debug.Log($"Applying trait effects on attack to {target.name} with {appliedTraits.Count} traits");
+            Debug.Log($"<color=yellow>>>> ApplyTraitEffectsOnAttack: {target.name}, Traits count: {appliedTraits.Count}</color>");
             
             foreach (var trait in appliedTraits)
             {
-                Debug.Log($"Applying trait: {trait.traitName} (hasChainEffect: {trait.hasChainEffect})");
+                Debug.Log($"<color=yellow>  → Checking trait: {trait.traitName}</color>");
+                Debug.Log($"     hasEarthTrapEffect: {trait.hasEarthTrapEffect}");
+                Debug.Log($"     hasExplosionEffect: {trait.hasExplosionEffect}");
+                Debug.Log($"     hasChainEffect: {trait.hasChainEffect}");
+                Debug.Log($"     hasBurnEffect: {trait.hasBurnEffect}");
                 ApplyTraitEffect(trait, target, damage);
             }
         }
@@ -910,11 +914,34 @@ namespace TowerFusion
                 ApplyExplosionEffect(trait, target, damage);
             }
             
-            // Apply earth trap effect
-            if (trait.hasEarthTrapEffect && target.CurrentHealth <= 0)
+            // Apply earth trap effect - converts hit enemy into a hole trap
+            if (trait.hasEarthTrapEffect)
             {
-                Debug.Log($"Trait '{trait.traitName}' has earth trap effect - creating trap at {target.transform.position}");
-                CreateEarthTrap(trait, target.transform.position);
+                Debug.Log($"<color=magenta>═══ EARTH TRAIT TRIGGERED ═══</color>");
+                Debug.Log($"<color=cyan>Trait: '{trait.traitName}'</color>");
+                Debug.Log($"<color=cyan>Target: {target.name}</color>");
+                Debug.Log($"<color=cyan>Target Position: {target.transform.position}</color>");
+                Debug.Log($"<color=cyan>Target Health: {target.CurrentHealth}/{target.MaxHealth}</color>");
+                
+                // Store position before destroying enemy
+                Vector3 holePosition = target.transform.position;
+                
+                // Instantly kill and destroy the hit enemy
+                Debug.Log($"<color=yellow>Killing enemy with overkill damage...</color>");
+                target.TakeDamage(target.MaxHealth * 100f, DamageType.Magic); // Overkill to ensure death
+                
+                // Create hole at the enemy's position
+                Debug.Log($"<color=yellow>Creating black disk at {holePosition}...</color>");
+                CreateEarthHole(trait, holePosition);
+                
+                // Destroy the enemy GameObject immediately (it becomes the hole)
+                if (target != null && target.gameObject != null)
+                {
+                    Debug.Log($"<color=yellow>Destroying enemy GameObject in 0.1s...</color>");
+                    Destroy(target.gameObject, 0.1f); // Small delay to let damage register
+                }
+                
+                Debug.Log($"<color=magenta>═══ EARTH TRAIT COMPLETE ═══</color>");
             }
         }
         
@@ -1170,51 +1197,80 @@ namespace TowerFusion
                 DestroyImmediate(explosionObj);
         }
         
-        private void CreateEarthTrap(TowerTrait trait, Vector3 position)
+        private void CreateEarthHole(TowerTrait trait, Vector3 position)
         {
-            GameObject trapObj;
+            Debug.Log($"<color=cyan>>>> CreateEarthHole called at position {position}</color>");
+            GameObject holeObj;
             
             // Try to use prefab if assigned
             if (trait.trapPrefab != null)
             {
-                trapObj = Instantiate(trait.trapPrefab, position, Quaternion.identity);
-                Debug.Log($"Created Earth Trap from prefab at {position}");
+                holeObj = Instantiate(trait.trapPrefab, position, Quaternion.identity);
+                Debug.Log($"<color=green>✓ Created Earth Hole from prefab at {position}</color>");
             }
             else
             {
-                // Create basic trap visual
-                trapObj = CreateBasicTrapVisual(position);
-                Debug.Log($"Created basic Earth Trap at {position}");
+                Debug.Log($"<color=yellow>No prefab assigned, creating basic hole visual...</color>");
+                // Create basic hole visual
+                holeObj = CreateBasicHoleVisual(position);
+                Debug.Log($"<color=green>✓ Created basic black disk at {position}</color>");
             }
+            
+            if (holeObj == null)
+            {
+                Debug.LogError("<color=red>✗ Failed to create hole object!</color>");
+                return;
+            }
+            
+            Debug.Log($"<color=cyan>Hole GameObject name: {holeObj.name}, Active: {holeObj.activeSelf}</color>");
             
             // Add or get EarthTrap component
-            EarthTrap trapComponent = trapObj.GetComponent<EarthTrap>();
-            if (trapComponent == null)
+            EarthTrap holeComponent = holeObj.GetComponent<EarthTrap>();
+            if (holeComponent == null)
             {
-                trapComponent = trapObj.AddComponent<EarthTrap>();
+                Debug.Log("<color=yellow>Adding EarthTrap component...</color>");
+                holeComponent = holeObj.AddComponent<EarthTrap>();
             }
             
-            // Initialize trap
-            trapComponent.Initialize(trait.trapDuration, trait.trapRadius);
+            if (holeComponent == null)
+            {
+                Debug.LogError("<color=red>✗ Failed to add EarthTrap component!</color>");
+                return;
+            }
+            
+            Debug.Log($"<color=cyan>Initializing hole with duration={trait.trapDuration}s, radius={trait.trapRadius}</color>");
+            
+            // Initialize hole
+            holeComponent.Initialize(trait.trapDuration, trait.trapRadius);
+            
+            Debug.Log($"<color=green>✓✓✓ Earth Hole fully created and initialized!</color>");
         }
         
-        private GameObject CreateBasicTrapVisual(Vector3 position)
+        private GameObject CreateBasicHoleVisual(Vector3 position)
         {
-            GameObject trapObj = new GameObject("EarthTrap");
-            trapObj.transform.position = position;
+            Debug.Log($"<color=cyan>>>> CreateBasicHoleVisual at {position}</color>");
             
-            // Add sprite renderer for visual
-            SpriteRenderer trapRenderer = trapObj.AddComponent<SpriteRenderer>();
+            GameObject holeObj = new GameObject("EarthHole_BlackDisk");
+            holeObj.transform.position = position;
             
-            // Create a brown circle texture for the trap
-            int size = 64;
-            Texture2D trapTexture = new Texture2D(size, size);
+            Debug.Log($"Created GameObject '{holeObj.name}' at {holeObj.transform.position}");
+            
+            // Add sprite renderer for the black disk
+            SpriteRenderer diskRenderer = holeObj.AddComponent<SpriteRenderer>();
+            
+            Debug.Log("Creating 128x128 black disk texture...");
+            
+            // Create a proper black disk texture with smooth edges
+            int size = 128; // Higher resolution for smoother appearance
+            Texture2D diskTexture = new Texture2D(size, size);
             Color[] pixels = new Color[size * size];
             
             Vector2 center = new Vector2(size / 2f, size / 2f);
             float radius = size / 2f;
-            Color brownColor = new Color(0.6f, 0.4f, 0.2f, 0.8f);
-            Color darkBrown = new Color(0.3f, 0.2f, 0.1f, 1f);
+            
+            // Pure black disk with smooth anti-aliased edges
+            Color black = new Color(0f, 0f, 0f, 1f);
+            Color transparent = new Color(0f, 0f, 0f, 0f);
             
             for (int y = 0; y < size; y++)
             {
@@ -1223,33 +1279,61 @@ namespace TowerFusion
                     Vector2 pos = new Vector2(x, y);
                     float distance = Vector2.Distance(pos, center);
                     
-                    if (distance <= radius)
+                    if (distance <= radius - 2f)
                     {
-                        // Create gradient from dark center to light edge
-                        float t = distance / radius;
-                        pixels[y * size + x] = Color.Lerp(darkBrown, brownColor, t);
+                        // Solid black disk core
+                        pixels[y * size + x] = black;
+                    }
+                    else if (distance <= radius)
+                    {
+                        // Smooth anti-aliased edge (2 pixel fade)
+                        float edgeFade = (radius - distance) / 2f;
+                        pixels[y * size + x] = Color.Lerp(transparent, black, edgeFade);
                     }
                     else
                     {
-                        pixels[y * size + x] = Color.clear;
+                        // Outside the disk - transparent
+                        pixels[y * size + x] = transparent;
                     }
                 }
             }
             
-            trapTexture.SetPixels(pixels);
-            trapTexture.Apply();
+            diskTexture.SetPixels(pixels);
+            diskTexture.Apply();
             
-            Sprite trapSprite = Sprite.Create(
-                trapTexture,
+            Debug.Log("Texture created and applied");
+            
+            // Create sprite from texture
+            Sprite diskSprite = Sprite.Create(
+                diskTexture,
                 new Rect(0, 0, size, size),
-                new Vector2(0.5f, 0.5f),
-                100f
+                new Vector2(0.5f, 0.5f), // Center pivot
+                100f // Pixels per unit
             );
             
-            trapRenderer.sprite = trapSprite;
-            trapRenderer.sortingOrder = -1; // Below everything else
+            diskRenderer.sprite = diskSprite;
+            diskRenderer.sortingLayerName = "Default"; // Use default sorting layer
+            diskRenderer.sortingOrder = 5; // Above ground (0-4) but below enemies (10+)
+            diskRenderer.color = Color.black; // Ensure it stays black
             
-            return trapObj;
+            Debug.Log($"Sprite assigned to renderer. SortingLayer={diskRenderer.sortingLayerName}, SortingOrder={diskRenderer.sortingOrder}, Color={diskRenderer.color}");
+            
+            // Optional: Add a subtle glow/shadow effect for depth
+            GameObject shadowObj = new GameObject("Shadow");
+            shadowObj.transform.SetParent(holeObj.transform);
+            shadowObj.transform.localPosition = new Vector3(0, -0.1f, 0);
+            shadowObj.transform.localScale = Vector3.one * 1.1f; // Slightly larger
+            
+            SpriteRenderer shadowRenderer = shadowObj.AddComponent<SpriteRenderer>();
+            shadowRenderer.sprite = diskSprite;
+            shadowRenderer.sortingLayerName = "Default";
+            shadowRenderer.sortingOrder = 4; // Just below the main disk
+            shadowRenderer.color = new Color(0f, 0f, 0f, 0.5f); // Semi-transparent black shadow
+            
+            Debug.Log($"<color=green>✓ Black disk visual created with shadow layer</color>");
+            Debug.Log($"<color=cyan>Main disk: SortingOrder=5, Shadow: SortingOrder=4</color>");
+            
+            return holeObj;
         }
         
         #endregion

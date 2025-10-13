@@ -41,7 +41,7 @@ Tools > Tower Fusion > Demo: Add Lightning Trait to Selected Tower
 | 🎯 **Sniper** | Green | 2x range, +2s charge | Long range |
 | 💰 **Harvest** | Yellow | +1 gold/kill | Economy |
 | 💥 **Explosion** | Orange | 75% AoE damage, 2u radius | Packed waves |
-| 🌍 **Earth** | Brown | Death = trap (4s, 5 DPS) | Choke points |
+| 🌍 **Earth** | Brown | Death = hole (3s), enemies fall in | Choke points |
 
 ---
 
@@ -67,14 +67,21 @@ Result: Massive AoE DoT damage
 
 ### "Permafrost" (Earth + Ice)
 ```
-Earth creates traps on kills → Ice slows enemies into traps
-Result: Lethal slow zones that enemies can't escape
+Earth creates holes on kills → Ice slows enemies into holes
+Result: Lethal zones that delete entire enemy groups
 ```
 
 ### "Gold Rush" (Explosion + Harvest)
 ```
 Explosion kills multiple enemies → Harvest multiplies gold gain
 Result: Maximum economy efficiency
+```
+
+### "Crater Field" (Earth + Explosion)
+```
+Explosion kills multiple at once → Each creates a hole
+Multiple holes = deadly minefield
+Result: Self-perpetuating kill zones
 ```
 
 ---
@@ -90,7 +97,7 @@ Result: Maximum economy efficiency
 **Mid Game (Waves 6-10):**
 - 💥 Explosion - Handle larger groups
 - ⚡ Lightning - Efficient multi-target
-- 🌍 Earth - Set up kill zones
+- 🌍 Earth - Create instant-kill holes
 
 **Late Game (Waves 11+):**
 - 🔥 Fire - Maximum single-target damage
@@ -100,12 +107,12 @@ Result: Maximum economy efficiency
 ### Tower Placement Strategy:
 
 **Choke Points:**
-- 🌍 Earth (trap creation)
+- 🌍 Earth (instant kill holes)
 - 💥 Explosion (grouped enemies)
 
 **Path Corners:**
 - ❄️ Ice (slow for other towers)
-- 🌍 Earth (trap escape routes)
+- 🌍 Earth (enemies fall into holes)
 
 **Path Entrance:**
 - 💰 Harvest (hit everything early)

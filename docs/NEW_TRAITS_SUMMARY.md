@@ -115,9 +115,17 @@ tower.AddTrait(explosionTrait);
 - **Result:** Massive area-of-effect damage over time
 
 ### "Permafrost" (Earth + Ice)
-- Earth creates traps when enemies die
-- Ice slows enemies, making them easier to trap
-- **Result:** Lethal zones that enemies can't escape
+- Earth creates holes when enemies die
+- Ice slows enemies, making them easier to position into holes
+- **Result:** Lethal zones that delete entire enemy groups
+
+**Example:**
+- Single Earth kill creates hole
+- Ice slows 5 enemies toward hole
+- All 5 fall in and disappear
+- **Total:** 6 enemies eliminated (1 initial + 5 swallowed)
+
+---
 
 ### "Gold Rush" (Explosion + Harvest)
 - Explosion can kill multiple enemies at once
@@ -143,14 +151,19 @@ tower.AddTrait(explosionTrait);
 6. Visual fades out over 0.5 seconds
 ```
 
-### Earth Trap Effect Flow:
+### Earth Trait:
 ```
-1. Tower kills enemy
-2. TowerTraitManager.CreateEarthTrap() called at death position
-3. EarthTrap component created/initialized
-4. Trap pulls enemies within radius toward center
-5. Deals 5 DPS to all enemies in trap
-6. Trap auto-destroys after duration expires
+1. Tower kills an enemy
+2. TowerTraitManager.CreateEarthHole() called at death position
+3. EarthTrap (hole) component created/initialized
+4. Hole waits for 3 seconds
+5. Any enemy touching hole triggers SwallowEnemy() coroutine:
+   - Enemy position lerps to hole center
+   - Enemy scale lerps from 1.0 to 0.0
+   - Enemy rotates (spiral effect)
+   - Takes massive overkill damage (instant death)
+   - GameObject destroyed
+6. Hole auto-destroys after 3 seconds
 ```
 
 ---
@@ -163,11 +176,11 @@ tower.AddTrait(explosionTrait);
 - **Animation:** Rapid expansion + fade (0.5s)
 - **Color:** Starts bright orange, darkens as it fades
 
-### Earth Trap:
-- **Tower Overlay:** Brown (40% opacity)
-- **Trap Visual:** Brown circular gradient (dark center → light edge)
-- **Animation:** Fades out in last second before expiry
-- **Sorting:** Renders below everything else (ground level)
+### Earth Trait:
+- **Visual overlay:** Brown (40% opacity)
+- **Hole Effect:** Very dark brown/black circular gradient
+- **Animation:** Enemies shrink and spiral as they fall in
+- **Sorting:** Renders below everything (ground level)
 
 ---
 
@@ -178,11 +191,11 @@ tower.AddTrait(explosionTrait);
 - **2 unit radius** - Large enough to hit groups, small enough to require positioning
 - **Stacks with base damage** - Scales with tower upgrades
 
-### Earth Trap:
-- **5 DPS** - Meaningful damage without instant kills
-- **4 second duration** - Long enough to be useful, short enough to not be permanent
+### Earth Trait:
+- **3 second duration** - Long enough to catch multiple enemies
 - **1 unit radius** - Affects tight groupings
-- **Pull strength scales with distance** - Stronger near center
+- **Instant kill on contact** - No damage calculation, just disappear
+- **Swallow animation** - 0.5 seconds from touch to destruction
 
 ---
 
