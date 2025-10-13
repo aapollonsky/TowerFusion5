@@ -41,8 +41,9 @@ namespace TowerFusion.UI
         [SerializeField] private Button traitDoneButton;
         
         [Header("Available Traits")]
-        [SerializeField] private TowerTrait[] availableTraits = new TowerTrait[5];
-        [SerializeField] private float[] traitProbabilities = {0.2f, 0.2f, 0.2f, 0.2f, 0.2f};
+        [SerializeField] private TowerTrait[] availableTraits = new TowerTrait[7];
+        [SerializeField] private float[] traitProbabilities = {0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.125f, 0.125f};
+        [SerializeField] private bool autoLoadTraitsFromResources = true;
         
         [Header("Game Over")]
         [SerializeField] private GameObject gameOverPanel;
@@ -56,6 +57,12 @@ namespace TowerFusion.UI
         
         private void Start()
         {
+            // Auto-load traits if enabled and array is empty
+            if (autoLoadTraitsFromResources && (availableTraits == null || availableTraits.Length == 0 || availableTraits[0] == null))
+            {
+                LoadTraitsFromResources();
+            }
+            
             InitializeUI();
             SubscribeToEvents();
         }
@@ -63,6 +70,44 @@ namespace TowerFusion.UI
         private void OnDestroy()
         {
             UnsubscribeFromEvents();
+        }
+        
+        /// <summary>
+        /// Load all traits from Resources folder
+        /// </summary>
+        private void LoadTraitsFromResources()
+        {
+            // Try loading from Resources/Traits folder first
+            TowerTrait[] loadedTraits = Resources.LoadAll<TowerTrait>("Traits");
+            
+            // If not found, try Data/Traits
+            if (loadedTraits == null || loadedTraits.Length == 0)
+            {
+                loadedTraits = Resources.LoadAll<TowerTrait>("Data/Traits");
+            }
+            
+            if (loadedTraits != null && loadedTraits.Length > 0)
+            {
+                availableTraits = loadedTraits;
+                Debug.Log($"Auto-loaded {loadedTraits.Length} traits from Resources: {string.Join(", ", System.Array.ConvertAll(loadedTraits, t => t.traitName))}");
+                
+                // Update probabilities array to match loaded traits count
+                if (traitProbabilities.Length != loadedTraits.Length)
+                {
+                    float equalProbability = 1f / loadedTraits.Length;
+                    traitProbabilities = new float[loadedTraits.Length];
+                    for (int i = 0; i < traitProbabilities.Length; i++)
+                    {
+                        traitProbabilities[i] = equalProbability;
+                    }
+                    Debug.Log($"Updated trait probabilities to equal distribution: {equalProbability:P0} each");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("No traits found in Resources/Traits or Resources/Data/Traits! Please ensure traits are created and placed in a Resources folder.");
+                Debug.LogWarning("Run: Tools > Tower Fusion > Create Default Traits, then move the traits to Assets/Resources/Traits/");
+            }
         }
         
         /// <summary>
@@ -411,17 +456,28 @@ namespace TowerFusion.UI
         /// </summary>
         private void ShowTraitCard()
         {
-            if (traitButtonUsedThisWave || availableTraits == null || availableTraits.Length == 0)
+            if (traitButtonUsedThisWave)
+            {
+                Debug.Log("Trait button already used this wave");
                 return;
+            }
+            
+            if (availableTraits == null || availableTraits.Length == 0)
+            {
+                Debug.LogError("No traits available! Make sure traits are loaded. Check availableTraits array in GameUI inspector or enable autoLoadTraitsFromResources.");
+                return;
+            }
             
             // Generate random trait based on probabilities
             selectedTrait = GenerateRandomTrait();
             
             if (selectedTrait == null)
             {
-                Debug.LogWarning("No trait could be generated!");
+                Debug.LogWarning("No trait could be generated! Check that availableTraits contains valid trait assets.");
                 return;
             }
+            
+            Debug.Log($"Generated random trait: {selectedTrait.traitName} - {selectedTrait.description}");
             
             // Update UI with trait info
             if (traitNameText != null)
@@ -435,7 +491,14 @@ namespace TowerFusion.UI
             
             // Show dialog
             if (traitCardDialog != null)
+            {
                 traitCardDialog.SetActive(true);
+                Debug.Log($"Showing trait card dialog for: {selectedTrait.traitName}");
+            }
+            else
+            {
+                Debug.LogError("traitCardDialog is null! Assign the trait dialog GameObject in GameUI inspector.");
+            }
             
             // Disable trait button for this wave
             traitButtonUsedThisWave = true;

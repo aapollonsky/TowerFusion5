@@ -58,6 +58,15 @@ namespace TowerFusion
         public bool hasGoldReward = false;
         public int goldPerKill = 1;
         
+        public bool hasExplosionEffect = false;
+        public float explosionRadius = 2f;
+        public float explosionDamageMultiplier = 0.75f; // 75% damage to explosion targets
+        
+        public bool hasEarthTrapEffect = false;
+        public float trapDuration = 4f;
+        public float trapRadius = 1f;
+        public GameObject trapPrefab; // Visual prefab for the trap
+        
         /// <summary>
         /// Apply trait modifications to tower stats
         /// </summary>

@@ -82,6 +82,7 @@
     <Compile Include="Assets/Scripts/Wave/WaveData.cs" />
     <Compile Include="Assets/Scripts/Tower/Tower.cs" />
     <Compile Include="Assets/Scripts/Tower/Projectile.cs" />
+    <Compile Include="Assets/Scripts/Effects/EarthTrap.cs" />
     <Compile Include="Assets/Scripts/Map/MapManager.cs" />
     <Compile Include="Assets/Scripts/Test/LightningTraitTest.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerManager.cs" />

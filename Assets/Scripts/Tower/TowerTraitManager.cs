@@ -902,6 +902,20 @@ namespace TowerFusion
                 Debug.Log($"Trait '{trait.traitName}' has chain effect - applying to {target.name}");
                 ApplyChainEffect(trait, target, damage);
             }
+            
+            // Apply explosion effect
+            if (trait.hasExplosionEffect)
+            {
+                Debug.Log($"Trait '{trait.traitName}' has explosion effect - applying at {target.transform.position}");
+                ApplyExplosionEffect(trait, target, damage);
+            }
+            
+            // Apply earth trap effect
+            if (trait.hasEarthTrapEffect && target.CurrentHealth <= 0)
+            {
+                Debug.Log($"Trait '{trait.traitName}' has earth trap effect - creating trap at {target.transform.position}");
+                CreateEarthTrap(trait, target.transform.position);
+            }
         }
         
         private void ApplyChainEffect(TowerTrait trait, Enemy primaryTarget, float damage)
@@ -1070,6 +1084,172 @@ namespace TowerFusion
             // Clean up
             if (flash != null)
                 DestroyImmediate(flash);
+        }
+        
+        private void ApplyExplosionEffect(TowerTrait trait, Enemy target, float damage)
+        {
+            Vector3 explosionCenter = target.transform.position;
+            Debug.Log($"Creating explosion at {explosionCenter} with radius {trait.explosionRadius}");
+            
+            // Find all enemies in explosion radius
+            Collider2D[] hitColliders = Physics2D.OverlapCircleAll(explosionCenter, trait.explosionRadius);
+            Debug.Log($"Found {hitColliders.Length} colliders in explosion radius");
+            
+            List<Enemy> enemiesInRange = new List<Enemy>();
+            foreach (var collider in hitColliders)
+            {
+                Enemy enemy = collider.GetComponent<Enemy>();
+                if (enemy != null && enemy != target && enemy.IsAlive)
+                {
+                    enemiesInRange.Add(enemy);
+                    Debug.Log($"Enemy in explosion: {enemy.name}");
+                }
+            }
+            
+            // Apply explosion damage
+            float explosionDamage = damage * trait.explosionDamageMultiplier;
+            foreach (var enemy in enemiesInRange)
+            {
+                enemy.TakeDamage(explosionDamage, DamageType.Fire);
+                Debug.Log($"Explosion: {explosionDamage} damage to {enemy.name}");
+            }
+            
+            // Create visual explosion effect
+            StartCoroutine(CreateExplosionVisual(explosionCenter, trait.explosionRadius));
+        }
+        
+        private System.Collections.IEnumerator CreateExplosionVisual(Vector3 center, float radius)
+        {
+            // Create expanding circle effect
+            GameObject explosionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            explosionObj.name = "ExplosionEffect";
+            explosionObj.transform.position = center;
+            explosionObj.transform.localScale = Vector3.zero;
+            
+            // Remove colliders
+            Collider col = explosionObj.GetComponent<Collider>();
+            if (col != null) DestroyImmediate(col);
+            
+            Collider2D col2D = explosionObj.GetComponent<Collider2D>();
+            if (col2D != null) DestroyImmediate(col2D);
+            
+            // Set up material
+            Renderer renderer = explosionObj.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.material = new Material(Shader.Find("Sprites/Default"));
+                renderer.material.color = new Color(1f, 0.5f, 0f, 0.8f); // Orange
+            }
+            
+            // Animate explosion
+            float duration = 0.5f;
+            float elapsed = 0f;
+            float maxScale = radius * 2f;
+            
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = elapsed / duration;
+                
+                // Expand quickly, then fade
+                float scale = Mathf.Lerp(0f, maxScale, Mathf.Sqrt(progress));
+                explosionObj.transform.localScale = Vector3.one * scale;
+                
+                // Fade out
+                if (renderer != null)
+                {
+                    Color color = new Color(1f, 0.5f - progress * 0.3f, 0f, 1f - progress);
+                    renderer.material.color = color;
+                }
+                
+                yield return null;
+            }
+            
+            // Clean up
+            if (explosionObj != null)
+                DestroyImmediate(explosionObj);
+        }
+        
+        private void CreateEarthTrap(TowerTrait trait, Vector3 position)
+        {
+            GameObject trapObj;
+            
+            // Try to use prefab if assigned
+            if (trait.trapPrefab != null)
+            {
+                trapObj = Instantiate(trait.trapPrefab, position, Quaternion.identity);
+                Debug.Log($"Created Earth Trap from prefab at {position}");
+            }
+            else
+            {
+                // Create basic trap visual
+                trapObj = CreateBasicTrapVisual(position);
+                Debug.Log($"Created basic Earth Trap at {position}");
+            }
+            
+            // Add or get EarthTrap component
+            EarthTrap trapComponent = trapObj.GetComponent<EarthTrap>();
+            if (trapComponent == null)
+            {
+                trapComponent = trapObj.AddComponent<EarthTrap>();
+            }
+            
+            // Initialize trap
+            trapComponent.Initialize(trait.trapDuration, trait.trapRadius);
+        }
+        
+        private GameObject CreateBasicTrapVisual(Vector3 position)
+        {
+            GameObject trapObj = new GameObject("EarthTrap");
+            trapObj.transform.position = position;
+            
+            // Add sprite renderer for visual
+            SpriteRenderer trapRenderer = trapObj.AddComponent<SpriteRenderer>();
+            
+            // Create a brown circle texture for the trap
+            int size = 64;
+            Texture2D trapTexture = new Texture2D(size, size);
+            Color[] pixels = new Color[size * size];
+            
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+            float radius = size / 2f;
+            Color brownColor = new Color(0.6f, 0.4f, 0.2f, 0.8f);
+            Color darkBrown = new Color(0.3f, 0.2f, 0.1f, 1f);
+            
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 pos = new Vector2(x, y);
+                    float distance = Vector2.Distance(pos, center);
+                    
+                    if (distance <= radius)
+                    {
+                        // Create gradient from dark center to light edge
+                        float t = distance / radius;
+                        pixels[y * size + x] = Color.Lerp(darkBrown, brownColor, t);
+                    }
+                    else
+                    {
+                        pixels[y * size + x] = Color.clear;
+                    }
+                }
+            }
+            
+            trapTexture.SetPixels(pixels);
+            trapTexture.Apply();
+            
+            Sprite trapSprite = Sprite.Create(
+                trapTexture,
+                new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f),
+                100f
+            );
+            
+            trapRenderer.sprite = trapSprite;
+            trapRenderer.sortingOrder = -1; // Below everything else
+            
+            return trapObj;
         }
         
         #endregion

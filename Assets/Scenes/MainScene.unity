@@ -2300,17 +2300,18 @@ MonoBehaviour:
   traitIconImage: {fileID: 272607803}
   traitDoneButton: {fileID: 347309419}
   availableTraits:
-  - {fileID: 11400000, guid: cef7bbb9b7d744000be0dcecf16f945c, type: 2}
-  - {fileID: 11400000, guid: a9c5c141de67548678a722f876ae7e0e, type: 2}
-  - {fileID: 11400000, guid: 71671396feea34dd49a6cca1c1dc6e3d, type: 2}
-  - {fileID: 11400000, guid: 620aa7075f3764ba28e1bac853fbf695, type: 2}
-  - {fileID: 11400000, guid: 5863c6532c7694240bb45c320e0dc056, type: 2}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   traitProbabilities:
   - 0.2
   - 0.2
   - 0.2
   - 0.2
   - 0.2
+  autoLoadTraitsFromResources: 1
   gameOverPanel: {fileID: 0}
   victoryPanel: {fileID: 0}
   restartButton: {fileID: 0}
@@ -3351,6 +3352,65 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1672869345}
   m_CullTransparentMesh: 1
+--- !u!1 &1716542522
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1716542524}
+  - component: {fileID: 1716542523}
+  m_Layer: 0
+  m_Name: DebugTracker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!223 &1716542523
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1716542522}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 0
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0
+--- !u!224 &1716542524
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1716542522}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0, y: 0}
 --- !u!1 &1762772888
 GameObject:
   m_ObjectHideFlags: 0
@@ -3963,3 +4023,4 @@ SceneRoots:
   - {fileID: 676567107}
   - {fileID: 974851451}
   - {fileID: 1480552882}
+  - {fileID: 1716542524}

@@ -25,6 +25,8 @@ namespace TowerFusion.Editor
             CreateLightningTrait(traitsPath);
             CreateSniperTrait(traitsPath);
             CreateHarvestTrait(traitsPath);
+            CreateExplosionTrait(traitsPath);
+            CreateEarthTrait(traitsPath);
             
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -136,6 +138,46 @@ namespace TowerFusion.Editor
             trait.overlayAlpha = 0.2f;
             
             AssetDatabase.CreateAsset(trait, $"{path}/Harvest.asset");
+        }
+        
+        private static void CreateExplosionTrait(string path)
+        {
+            var trait = ScriptableObject.CreateInstance<TowerTrait>();
+            trait.name = "Explosion";
+            trait.traitName = "Explosion";
+            trait.description = "Impact causes explosion dealing 75% damage in 2 unit radius";
+            trait.category = TraitCategory.Elemental;
+            
+            // Effects
+            trait.hasExplosionEffect = true;
+            trait.explosionRadius = 2f;
+            trait.explosionDamageMultiplier = 0.75f; // 75% damage to nearby enemies
+            
+            // Visual
+            trait.overlayColor = new Color(1f, 0.5f, 0f); // Orange
+            trait.overlayAlpha = 0.4f;
+            
+            AssetDatabase.CreateAsset(trait, $"{path}/Explosion.asset");
+        }
+        
+        private static void CreateEarthTrait(string path)
+        {
+            var trait = ScriptableObject.CreateInstance<TowerTrait>();
+            trait.name = "Earth";
+            trait.traitName = "Earth";
+            trait.description = "Turns hit enemy into ground trap (4 seconds, 1 unit radius)";
+            trait.category = TraitCategory.Elemental;
+            
+            // Effects
+            trait.hasEarthTrapEffect = true;
+            trait.trapDuration = 4f;
+            trait.trapRadius = 1f;
+            
+            // Visual
+            trait.overlayColor = new Color(0.6f, 0.4f, 0.2f); // Brown
+            trait.overlayAlpha = 0.4f;
+            
+            AssetDatabase.CreateAsset(trait, $"{path}/Earth.asset");
         }
     }
 }

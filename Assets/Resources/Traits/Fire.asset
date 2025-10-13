@@ -10,28 +10,28 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed3a3aa82f6be4df3af713abd8d53e77, type: 3}
-  m_Name: Harvest
+  m_Name: Fire
   m_EditorClassIdentifier: 
-  traitName: Harvest
-  description: +1 gold per kill
-  traitIcon: {fileID: 21300000, guid: 3cd2a8755bd2844adb31a96d7c9b610d, type: 3}
-  category: 2
-  overlayColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  overlayAlpha: 0.2
+  traitName: Fire
+  description: +50% damage, burn DoT (3 seconds)
+  traitIcon: {fileID: 0}
+  category: 0
+  overlayColor: {r: 1, g: 0, b: 0, a: 1}
+  overlayAlpha: 0.4
   overlaySprite: {fileID: 0}
   effectPrefab: {fileID: 0}
-  traitBadge: {fileID: 21300000, guid: 3cd2a8755bd2844adb31a96d7c9b610d, type: 3}
-  badgeOffset: {x: 1, y: 1.2}
-  badgeScale: 0.4
+  traitBadge: {fileID: 0}
+  badgeOffset: {x: 0.8, y: 0.8}
+  badgeScale: 1.2
   animateBadge: 1
-  damageMultiplier: 1
+  damageMultiplier: 1.5
   damageBonus: 0
   rangeMultiplier: 1
   rangeBonus: 0
   attackSpeedMultiplier: 1
   attackSpeedBonus: 0
   chargeTimeBonus: 0
-  hasBurnEffect: 0
+  hasBurnEffect: 1
   burnDamagePerSecond: 10
   burnDuration: 3
   hasSlowEffect: 0
@@ -44,5 +44,12 @@ MonoBehaviour:
   chainTargets: 2
   chainDamageMultiplier: 1
   chainRange: 2
-  hasGoldReward: 1
+  hasGoldReward: 0
   goldPerKill: 1
+  hasExplosionEffect: 0
+  explosionRadius: 2
+  explosionDamageMultiplier: 0.75
+  hasEarthTrapEffect: 0
+  trapDuration: 4
+  trapRadius: 1
+  trapPrefab: {fileID: 0}

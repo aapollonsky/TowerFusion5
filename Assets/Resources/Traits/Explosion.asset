@@ -10,27 +10,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed3a3aa82f6be4df3af713abd8d53e77, type: 3}
-  m_Name: Sniper
+  m_Name: Explosion
   m_EditorClassIdentifier: 
-  traitName: Sniper
-  description: +100% range, +2 second charge time
-  traitIcon: {fileID: 21300000, guid: a50676827581b4eedadc4a12f9addff4, type: 3}
-  category: 1
-  overlayColor: {r: 0, g: 1, b: 0, a: 1}
-  overlayAlpha: 0.3
+  traitName: Explosion
+  description: Impact causes explosion dealing 75% damage in 2 unit radius
+  traitIcon: {fileID: 0}
+  category: 0
+  overlayColor: {r: 1, g: 0.5, b: 0, a: 1}
+  overlayAlpha: 0.4
   overlaySprite: {fileID: 0}
   effectPrefab: {fileID: 0}
-  traitBadge: {fileID: 21300000, guid: a50676827581b4eedadc4a12f9addff4, type: 3}
-  badgeOffset: {x: 1, y: 1.2}
-  badgeScale: 0.4
+  traitBadge: {fileID: 0}
+  badgeOffset: {x: 0.8, y: 0.8}
+  badgeScale: 1.2
   animateBadge: 1
   damageMultiplier: 1
   damageBonus: 0
-  rangeMultiplier: 2
+  rangeMultiplier: 1
   rangeBonus: 0
   attackSpeedMultiplier: 1
   attackSpeedBonus: 0
-  chargeTimeBonus: 2
+  chargeTimeBonus: 0
   hasBurnEffect: 0
   burnDamagePerSecond: 10
   burnDuration: 3
@@ -46,3 +46,10 @@ MonoBehaviour:
   chainRange: 2
   hasGoldReward: 0
   goldPerKill: 1
+  hasExplosionEffect: 1
+  explosionRadius: 2
+  explosionDamageMultiplier: 0.75
+  hasEarthTrapEffect: 0
+  trapDuration: 4
+  trapRadius: 1
+  trapPrefab: {fileID: 0}

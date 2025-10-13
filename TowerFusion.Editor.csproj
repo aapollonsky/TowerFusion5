@@ -75,6 +75,7 @@
     <Compile Include="Assets/Scripts/Editor/HarvestTraitTester.cs" />
     <Compile Include="Assets/Scripts/Editor/FireTraitTester.cs" />
     <Compile Include="Assets/Scripts/Editor/TraitSystemDebugger.cs" />
+    <Compile Include="Assets/Scripts/Editor/TraitResourcesSetup.cs" />
     <Compile Include="Assets/Scripts/Editor/StatusEffectColorDebugger.cs" />
     <Compile Include="Assets/Scripts/Editor/TraitSystemDemo.cs" />
     <Compile Include="Assets/Scripts/Editor/TowerTraitVisualDebugger.cs" />
