@@ -22,4 +22,4 @@ MonoBehaviour:
     count: 3
     delayBeforeGroup: 2
   timeBetweenGroups: 2
-  timeBetweenEnemies: 0.5
+  timeBetweenEnemies: 1.5

@@ -79,8 +79,8 @@
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UI/UndoRedo/UndoRedoState.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UVCSToolbar/PopupWindow/Operations/UncontrolledPopupOperations.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UI/ScreenResolution.cs" />
-    <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UI/GUIActionRunner.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UI/UndoRedo/UndoRedoTextArea.cs" />
+    <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UI/GUIActionRunner.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/CloudDrive/CreateWorkspace/CollaboratorsListViewItem.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Views/Labels/LabelsSelection.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Configuration/CloudEdition/Welcome/SignInWithEmailPanel.cs" />
@@ -115,8 +115,8 @@
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UVCSToolbar/PopupWindow/PopupWindowDrawing.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Views/History/SaveAction.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Views/Merge/Gluon/ChangeCategoryTreeViewItem.cs" />
-    <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/AssetMenu/ProjectViewAssetMenu.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/TestingPreference.cs" />
+    <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/AssetMenu/ProjectViewAssetMenu.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/AssetMenu/Dialogs/CheckinDialogOperations.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/UI/DrawCopyableLabel.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/CloudDrive/Workspaces/DirectoryContent/DirectoryContentPanel.cs" />
@@ -346,8 +346,8 @@
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/AssetOverlays/DrawAssetOverlayIcon.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/CloudDrive/Workspaces/CloudWorkspacesView.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Views/Shelves/ShelvesListView.cs" />
-    <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Tool/FindTool.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/CloudDrive/Workspaces/DirectoryContent/ProcessItemsGridViewEvent.cs" />
+    <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Tool/FindTool.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Configuration/CloudEdition/Welcome/OrganizationPanel.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Views/PendingChanges/Dialogs/LaunchCheckinConflictsDialog.cs" />
     <Compile Include="Library/PackageCache/com.unity.collab-proxy@2.9.3/Editor/Views/Locks/LocksListView.cs" />
