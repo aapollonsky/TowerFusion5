@@ -26,6 +26,7 @@ namespace TowerFusion
         // Special effects
         private TowerData originTowerData;
         private Tower originTower;
+        private TowerTrait sourceTrait; // Trait that fired this projectile (if any)
         
         // Movement
         private Vector3 targetPosition;
@@ -99,6 +100,15 @@ namespace TowerFusion
         public void SetSpecialEffects(TowerData towerData)
         {
             originTowerData = towerData;
+        }
+        
+        /// <summary>
+        /// Mark this projectile as being fired by a specific trait
+        /// </summary>
+        public void SetTraitProjectile(TowerTrait trait)
+        {
+            sourceTrait = trait;
+            Debug.Log($"Projectile marked as trait projectile: {trait.traitName}");
         }
         
         /// <summary>
@@ -212,26 +222,26 @@ namespace TowerFusion
                 float healthBefore = hitEnemy.CurrentHealth;
                 hitEnemy.TakeDamage(damage, damageType);
                 
-                // Apply trait effects from origin tower
-                if (originTower != null && originTower.TraitManager != null)
+                // Only trait projectiles apply trait effects
+                // Regular tower projectiles just deal damage
+                if (sourceTrait != null && sourceTrait.projectileAppliesTraitEffects)
                 {
-                    Debug.Log($"Projectile: Applying trait effects from {originTower.name} to {hitEnemy.name}");
-                    originTower.TraitManager.ApplyTraitEffectsOnAttack(hitEnemy, damage);
-                    
-                    // Check if enemy was killed and apply kill effects
-                    if (healthBefore > 0 && hitEnemy.CurrentHealth <= 0)
+                    if (originTower != null && originTower.TraitManager != null)
                     {
-                        Debug.Log($"Projectile: Enemy {hitEnemy.name} was killed, applying kill effects");
-                        originTower.TraitManager.ApplyTraitEffectsOnKill(hitEnemy);
+                        Debug.Log($"<color=cyan>Trait projectile from '{sourceTrait.traitName}': Applying effects to {hitEnemy.name}</color>");
+                        originTower.TraitManager.ApplySingleTraitEffect(sourceTrait, hitEnemy, damage);
+                        
+                        // Check if enemy was killed
+                        if (healthBefore > 0 && hitEnemy.CurrentHealth <= 0)
+                        {
+                            originTower.TraitManager.ApplySingleTraitKillEffect(sourceTrait, hitEnemy);
+                        }
                     }
                 }
-                else if (originTower == null)
+                else
                 {
-                    Debug.LogWarning("Projectile: No origin tower reference - trait effects not applied");
-                }
-                else if (originTower.TraitManager == null)
-                {
-                    Debug.LogWarning($"Projectile: {originTower.name} has no trait manager - trait effects not applied");
+                    // Regular tower projectile - no trait effects
+                    Debug.Log($"<color=gray>Regular projectile: Dealt {damage} damage to {hitEnemy.name} (no trait effects)</color>");
                 }
                 
                 ApplySpecialEffects(hitEnemy);

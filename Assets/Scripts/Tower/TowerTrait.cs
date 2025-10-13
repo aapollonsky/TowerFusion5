@@ -67,6 +67,20 @@ namespace TowerFusion
         public float trapRadius = 1f;
         public GameObject trapPrefab; // Visual prefab for the trap
         
+        [Header("Projectile System (Optional)")]
+        [Tooltip("If set, this trait will fire its own independent projectiles")]
+        public bool hasIndependentProjectile = false;
+        public GameObject projectilePrefab; // Trait-specific projectile
+        [Tooltip("Seconds between shots (e.g., 2.0 = fires every 2 seconds, 0.5 = fires twice per second)")]
+        public float projectileCooldown = 1f; // Seconds between shots
+        public float projectileSpeed = 10f;
+        public float projectileDamage = 25f;
+        public DamageType projectileDamageType = DamageType.Magic;
+        [Tooltip("Visual effect that appears at impact")]
+        public GameObject projectileImpactEffect;
+        [Tooltip("If true, projectile applies trait effects; if false, projectile is just visual")]
+        public bool projectileAppliesTraitEffects = true;
+        
         /// <summary>
         /// Apply trait modifications to tower stats
         /// </summary>

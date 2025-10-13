@@ -20,6 +20,7 @@ namespace TowerFusion
         // Cached components
         private Tower tower;
         private List<ParticleSystem> activeEffects = new List<ParticleSystem>();
+        private List<TraitProjectileSystem> projectileSystems = new List<TraitProjectileSystem>();
         
         // Events
         public System.Action<TowerTrait> OnTraitAdded;
@@ -73,6 +74,12 @@ namespace TowerFusion
             ApplyTraitVisuals(trait);
             NotifyTowerOfTraitChanges();
             
+            // Setup independent projectile system if trait has one
+            if (trait.hasIndependentProjectile)
+            {
+                SetupTraitProjectileSystem(trait);
+            }
+            
             // Show range indicator if this trait affects range
             if (trait.rangeMultiplier != 1f || trait.rangeBonus != 0f)
             {
@@ -102,6 +109,12 @@ namespace TowerFusion
             RefreshAllVisuals();
             NotifyTowerOfTraitChanges();
             
+            // Remove projectile system if trait had one
+            if (trait.hasIndependentProjectile)
+            {
+                RemoveTraitProjectileSystem(trait);
+            }
+            
             OnTraitRemoved?.Invoke(trait);
             OnTraitsChanged?.Invoke();
             
@@ -115,6 +128,9 @@ namespace TowerFusion
         public void ClearAllTraits()
         {
             if (appliedTraits.Count == 0) return;
+            
+            // Clear all projectile systems
+            ClearAllProjectileSystems();
             
             appliedTraits.Clear();
             RefreshAllVisuals();
@@ -877,6 +893,29 @@ namespace TowerFusion
             }
         }
         
+        /// <summary>
+        /// Apply a single trait's effects (for trait-specific projectiles)
+        /// </summary>
+        public void ApplySingleTraitEffect(TowerTrait trait, Enemy target, float damage)
+        {
+            if (trait == null || target == null) return;
+            ApplyTraitEffect(trait, target, damage);
+        }
+        
+        /// <summary>
+        /// Apply a single trait's kill effects (for trait-specific projectiles)
+        /// </summary>
+        public void ApplySingleTraitKillEffect(TowerTrait trait, Enemy target)
+        {
+            if (trait == null || target == null) return;
+            
+            if (trait.hasGoldReward)
+            {
+                GameManager.Instance?.AddGold(trait.goldPerKill);
+                Debug.Log($"Trait '{trait.traitName}': +{trait.goldPerKill} gold from kill");
+            }
+        }
+        
         private void ApplyTraitEffect(TowerTrait trait, Enemy target, float damage)
         {
             // Apply burn effect
@@ -1334,6 +1373,65 @@ namespace TowerFusion
             Debug.Log($"<color=cyan>Main disk: SortingOrder=5, Shadow: SortingOrder=4</color>");
             
             return holeObj;
+        }
+        
+        #endregion
+        
+        #region Trait Projectile Systems
+        
+        /// <summary>
+        /// Setup an independent projectile system for a trait
+        /// </summary>
+        private void SetupTraitProjectileSystem(TowerTrait trait)
+        {
+            if (tower == null)
+            {
+                Debug.LogError($"Cannot setup projectile system for trait '{trait.traitName}' - no tower reference");
+                return;
+            }
+            
+            // Create projectile system GameObject
+            GameObject systemObj = new GameObject($"TraitProjectileSystem_{trait.traitName}");
+            systemObj.transform.SetParent(transform);
+            systemObj.transform.localPosition = Vector3.zero;
+            
+            // Add and initialize component
+            TraitProjectileSystem system = systemObj.AddComponent<TraitProjectileSystem>();
+            Transform firePoint = tower.transform; // Could be customized per trait
+            system.Initialize(trait, tower, firePoint);
+            
+            projectileSystems.Add(system);
+            
+            Debug.Log($"<color=green>✓ Setup projectile system for trait '{trait.traitName}'</color>");
+        }
+        
+        /// <summary>
+        /// Remove projectile system for a specific trait
+        /// </summary>
+        private void RemoveTraitProjectileSystem(TowerTrait trait)
+        {
+            TraitProjectileSystem systemToRemove = projectileSystems.FirstOrDefault(s => s.GetTrait() == trait);
+            
+            if (systemToRemove != null)
+            {
+                projectileSystems.Remove(systemToRemove);
+                Destroy(systemToRemove.gameObject);
+                Debug.Log($"<color=orange>Removed projectile system for trait '{trait.traitName}'</color>");
+            }
+        }
+        
+        /// <summary>
+        /// Clear all projectile systems
+        /// </summary>
+        private void ClearAllProjectileSystems()
+        {
+            foreach (var system in projectileSystems)
+            {
+                if (system != null)
+                    Destroy(system.gameObject);
+            }
+            projectileSystems.Clear();
+            Debug.Log("Cleared all trait projectile systems");
         }
         
         #endregion
