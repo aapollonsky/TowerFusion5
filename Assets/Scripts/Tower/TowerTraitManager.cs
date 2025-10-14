@@ -1289,27 +1289,29 @@ namespace TowerFusion
         {
             Debug.Log($"<color=cyan>>>> CreateBasicHoleVisual at {position}</color>");
             
-            GameObject holeObj = new GameObject("EarthHole_BlackDisk");
+            GameObject holeObj = new GameObject("EarthTrap_BrownDisk");
             holeObj.transform.position = position;
             
             Debug.Log($"Created GameObject '{holeObj.name}' at {holeObj.transform.position}");
             
-            // Add sprite renderer for the black disk
+            // Add sprite renderer for the brown semi-transparent disk
             SpriteRenderer diskRenderer = holeObj.AddComponent<SpriteRenderer>();
             
-            Debug.Log("Creating 128x128 black disk texture...");
-            
-            // Create a proper black disk texture with smooth edges
+            Debug.Log("Creating 128x128 brown semi-transparent disk texture...");
+
+            // Create a proper brown semi-transparent disk texture with smooth edges
             int size = 128; // Higher resolution for smoother appearance
+            float diskTransparency = 0.8f; // 80% opacity
+
             Texture2D diskTexture = new Texture2D(size, size);
             Color[] pixels = new Color[size * size];
             
             Vector2 center = new Vector2(size / 2f, size / 2f);
             float radius = size / 2f;
             
-            // Pure black disk with smooth anti-aliased edges
-            Color black = new Color(0f, 0f, 0f, 1f);
-            Color transparent = new Color(0f, 0f, 0f, 0f);
+            // Brown semi-transparent disk with smooth anti-aliased edges
+            Color brown = new Color(0.55f, 0.35f, 0.2f, diskTransparency); // Brown with 80% opacity
+            Color transparent = new Color(0.55f, 0.35f, 0.2f, 0f);
             
             for (int y = 0; y < size; y++)
             {
@@ -1320,14 +1322,14 @@ namespace TowerFusion
                     
                     if (distance <= radius - 2f)
                     {
-                        // Solid black disk core
-                        pixels[y * size + x] = black;
+                        // Solid brown semi-transparent disk core
+                        pixels[y * size + x] = brown;
                     }
                     else if (distance <= radius)
                     {
                         // Smooth anti-aliased edge (2 pixel fade)
                         float edgeFade = (radius - distance) / 2f;
-                        pixels[y * size + x] = Color.Lerp(transparent, black, edgeFade);
+                        pixels[y * size + x] = Color.Lerp(transparent, brown, edgeFade);
                     }
                     else
                     {
@@ -1353,7 +1355,7 @@ namespace TowerFusion
             diskRenderer.sprite = diskSprite;
             diskRenderer.sortingLayerName = "Default"; // Use default sorting layer
             diskRenderer.sortingOrder = 5; // Above ground (0-4) but below enemies (10+)
-            diskRenderer.color = Color.black; // Ensure it stays black
+            diskRenderer.color = new Color(0.55f, 0.35f, 0.2f, diskTransparency); // Brown semi-transparent
             
             Debug.Log($"Sprite assigned to renderer. SortingLayer={diskRenderer.sortingLayerName}, SortingOrder={diskRenderer.sortingOrder}, Color={diskRenderer.color}");
             
@@ -1367,10 +1369,10 @@ namespace TowerFusion
             shadowRenderer.sprite = diskSprite;
             shadowRenderer.sortingLayerName = "Default";
             shadowRenderer.sortingOrder = 4; // Just below the main disk
-            shadowRenderer.color = new Color(0f, 0f, 0f, 0.5f); // Semi-transparent black shadow
+            shadowRenderer.color = new Color(0.3f, 0.2f, 0.1f, 0.4f); // Darker brown shadow
             
-            Debug.Log($"<color=green>✓ Black disk visual created with shadow layer</color>");
-            Debug.Log($"<color=cyan>Main disk: SortingOrder=5, Shadow: SortingOrder=4</color>");
+            Debug.Log($"<color=green>✓ Brown semi-transparent disk visual created with shadow layer</color>");
+            Debug.Log($"<color=cyan>Main disk: SortingOrder=5 (brown semi-transparent), Shadow: SortingOrder=4</color>");
             
             return holeObj;
         }

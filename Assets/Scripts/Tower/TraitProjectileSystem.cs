@@ -36,7 +36,6 @@ namespace TowerFusion
             
             if (timeSinceLastFire >= trait.projectileCooldown)
             {
-                Debug.Log($"<color=orange>[{trait.traitName}] Time to fire! timeSinceLastFire={timeSinceLastFire:F2}s, cooldown={trait.projectileCooldown:F2}s</color>");
                 TryFire();
             }
         }
