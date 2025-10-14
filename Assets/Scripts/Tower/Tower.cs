@@ -720,6 +720,12 @@ namespace TowerFusion
                 return;
             }
             
+            // Skip regular shooting if tower has traits (trait projectile systems handle shooting)
+            if (traitManager != null && traitManager.AppliedTraits.Count > 0)
+            {
+                return;
+            }
+            
             float timeSinceLastAttack = Time.time - lastAttackTime;
             float attackCooldown = 1f / modifiedAttackSpeed;
             
