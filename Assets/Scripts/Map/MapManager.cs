@@ -16,6 +16,9 @@ namespace TowerFusion
     [SerializeField] private SpriteRenderer mapSpriteRenderer;
     [SerializeField] private bool useMapSprite = true;
         
+        [Header("Wave Generation")]
+        [SerializeField] private WaveGenerator waveGenerator;
+        
         // Singleton instance
         public static MapManager Instance { get; private set; }
         
@@ -43,6 +46,13 @@ namespace TowerFusion
             {
                 Debug.Log("MapManager: No Current Map assigned, auto-loading first map from MapLibrary.");
                 currentMap = mapLibrary.maps[0];
+            }
+
+            // Check if we should use auto-generated waves
+            if (waveGenerator != null && waveGenerator.UseAutoGeneration)
+            {
+                Debug.Log("<color=cyan>Using auto-generated waves</color>");
+                waveGenerator.GenerateWaves();
             }
 
             InitializeMap();
@@ -260,6 +270,13 @@ namespace TowerFusion
         /// </summary>
         public WaveData GetWaveData(int waveNumber)
         {
+            // Check if using auto-generated waves
+            if (waveGenerator != null && waveGenerator.UseAutoGeneration)
+            {
+                return waveGenerator.GetGeneratedWave(waveNumber);
+            }
+            
+            // Otherwise use map's predefined waves
             if (currentMap == null || waveNumber <= 0 || waveNumber > currentMap.waves.Count)
                 return null;
             
@@ -271,6 +288,13 @@ namespace TowerFusion
         /// </summary>
         public int GetTotalWaves()
         {
+            // Check if using auto-generated waves
+            if (waveGenerator != null && waveGenerator.UseAutoGeneration)
+            {
+                return waveGenerator.NumberOfWaves;
+            }
+            
+            // Otherwise use map's predefined wave count
             return currentMap?.waves.Count ?? 0;
         }
     }
