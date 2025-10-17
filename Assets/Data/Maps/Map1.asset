@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mapName: Map1
   description: 
-  mapPreview: {fileID: 21300000, guid: f008a9acac8b2453b84af651f4fbc2a9, type: 3}
+  mapPreview: {fileID: 21300000, guid: ec338d794e9b743e0827502976d6bb52, type: 3}
   pathPoints:
   - {x: -3, y: 0.2, z: 0}
   - {x: -2, y: -2.2, z: 0}

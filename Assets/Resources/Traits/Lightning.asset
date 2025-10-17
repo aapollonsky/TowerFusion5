@@ -53,3 +53,11 @@ MonoBehaviour:
   trapDuration: 4
   trapRadius: 1
   trapPrefab: {fileID: 0}
+  hasIndependentProjectile: 1
+  projectilePrefab: {fileID: 1544512298, guid: 101b2ecae9794ceaa8b92922cb70ac96, type: 3}
+  projectileCooldown: 4
+  projectileSpeed: 10
+  projectileDamage: 25
+  projectileDamageType: 1
+  projectileImpactEffect: {fileID: 0}
+  projectileAppliesTraitEffects: 1

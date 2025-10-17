@@ -69,7 +69,7 @@ MonoBehaviour:
       - {fileID: 1107236502, guid: 05ac128e1af104242b85b1cd387e8d23, type: 3}
       - {fileID: -1781879275, guid: 05ac128e1af104242b85b1cd387e8d23, type: 3}
       - {fileID: 1526199841, guid: 05ac128e1af104242b85b1cd387e8d23, type: 3}
-  maxHealth: 150
+  maxHealth: 200
   moveSpeed: 1
   goldReward: 15
   damageToPlayer: 1

@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Earth
   m_EditorClassIdentifier: 
   traitName: Earth
-  description: Hit enemy becomes black disk trap (3s) - other enemies fall in and
-    die
+  description: Hit enemy becomes a trap - enemies stepping over the trap lose 30%
+    of health
   traitIcon: {fileID: 21300000, guid: 1bd326be808f24da0a462a09d44400cf, type: 3}
   category: 0
   overlayColor: {r: 0.6, g: 0.4, b: 0.2, a: 1}
@@ -51,6 +51,14 @@ MonoBehaviour:
   explosionRadius: 2
   explosionDamageMultiplier: 0.75
   hasEarthTrapEffect: 1
-  trapDuration: 3
-  trapRadius: 1
+  trapDuration: 2
+  trapRadius: 0.5
   trapPrefab: {fileID: 0}
+  hasIndependentProjectile: 1
+  projectilePrefab: {fileID: 5971752763, guid: 6d4201cb78b44b75a252d0dfc871dd2a, type: 3}
+  projectileCooldown: 6
+  projectileSpeed: 10
+  projectileDamage: 25
+  projectileDamageType: 1
+  projectileImpactEffect: {fileID: 0}
+  projectileAppliesTraitEffects: 1
