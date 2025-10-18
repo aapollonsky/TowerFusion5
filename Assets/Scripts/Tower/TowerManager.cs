@@ -328,6 +328,7 @@ namespace TowerFusion
             
             // Subscribe to tower events
             tower.OnTowerUpgraded += OnTowerUpgradedHandler;
+            tower.OnTowerDestroyed += OnTowerDestroyedHandler;
         }
         
         /// <summary>
@@ -342,11 +343,22 @@ namespace TowerFusion
             
             // Unsubscribe from events
             tower.OnTowerUpgraded -= OnTowerUpgradedHandler;
+            tower.OnTowerDestroyed -= OnTowerDestroyedHandler;
             
             if (selectedTower == tower)
             {
                 selectedTower = null;
             }
+        }
+        
+        /// <summary>
+        /// Handle tower destroyed event
+        /// </summary>
+        private void OnTowerDestroyedHandler(Tower tower)
+        {
+            Debug.Log($"Tower {tower.TowerData.towerName} was destroyed by enemies!");
+            UnregisterTower(tower);
+            OnTowerSold?.Invoke(tower); // Reuse the sold event for UI updates
         }
         
         /// <summary>

@@ -82,5 +82,9 @@ MonoBehaviour:
   isFast: 0
   isRegenerating: 0
   regenerationRate: 0
+  canAttackTowers: 1
+  towerAttackDamage: 7
+  towerAttackRange: 1
+  towerAttackCooldown: 2
   enemyColor: {r: 1, g: 1, b: 1, a: 1}
   scale: {x: 1, y: 1, z: 1}

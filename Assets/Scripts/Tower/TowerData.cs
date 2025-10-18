@@ -20,6 +20,11 @@ namespace TowerFusion
         public float attackSpeed = 1f; // Attacks per second
         public DamageType damageType = DamageType.Physical;
         
+        [Header("Defense")]
+        public float maxHealth = 100f;
+        [Tooltip("Can this tower be destroyed by enemies?")]
+        public bool isDestructible = true;
+        
         [Header("Targeting")]
         public TargetingMode targetingMode = TargetingMode.First;
         public bool canTargetFlying = true;

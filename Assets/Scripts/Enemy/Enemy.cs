@@ -38,6 +38,13 @@ namespace TowerFusion
         private Vector3 lastPosition;
         private float currentMovementAngle;
         
+        // Tower attacking
+        private Tower currentTowerTarget;
+        private float lastTowerAttackTime;
+        private bool isAttackingTower = false;
+        private enum EnemyBehaviorState { MovingToEnd, SeekingTower, AttackingTower }
+        private EnemyBehaviorState behaviorState = EnemyBehaviorState.SeekingTower;
+        
         // Sprite animation
         private float animationTimer = 0f;
         private int currentFrameIndex = 0;
@@ -160,12 +167,232 @@ namespace TowerFusion
             if (!isAlive || hasReachedEnd)
                 return;
             
-            MoveAlongPath();
+            // Update behavior based on enemy type
+            if (enemyData.canAttackTowers)
+            {
+                UpdateTowerTargeting();
+                HandleTowerBehavior();
+            }
+            else
+            {
+                MoveAlongPath();
+            }
             
             // Always update animation, even if not moving
             if (enemyData.directionalSprites.useAnimation)
             {
                 UpdateSpriteAnimation();
+            }
+        }
+        
+        /// <summary>
+        /// Update tower targeting for enemies that attack towers
+        /// </summary>
+        private void UpdateTowerTargeting()
+        {
+            // Check if current tower target is still valid
+            if (currentTowerTarget != null && (!currentTowerTarget.IsAlive || currentTowerTarget == null))
+            {
+                // Unassign from distributor
+                if (EnemyTargetDistributor.Instance != null)
+                {
+                    EnemyTargetDistributor.Instance.UnassignEnemy(this);
+                }
+                
+                currentTowerTarget = null;
+                isAttackingTower = false;
+            }
+            
+            // If we don't have a target or are moving to end, look for towers
+            if (behaviorState != EnemyBehaviorState.MovingToEnd && currentTowerTarget == null)
+            {
+                FindDistributedTower();
+                
+                if (currentTowerTarget != null)
+                {
+                    behaviorState = EnemyBehaviorState.SeekingTower;
+                    
+                    // Register with distributor
+                    if (EnemyTargetDistributor.Instance != null)
+                    {
+                        EnemyTargetDistributor.Instance.AssignEnemyToTower(this, currentTowerTarget);
+                    }
+                }
+                else
+                {
+                    // No towers found, head to end point
+                    behaviorState = EnemyBehaviorState.MovingToEnd;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Handle behavior based on current state
+        /// </summary>
+        private void HandleTowerBehavior()
+        {
+            switch (behaviorState)
+            {
+                case EnemyBehaviorState.SeekingTower:
+                    if (currentTowerTarget != null)
+                    {
+                        MoveTowardsTower(currentTowerTarget);
+                        
+                        // Check if in attack range
+                        float distanceToTower = Vector3.Distance(transform.position, currentTowerTarget.Position);
+                        if (distanceToTower <= enemyData.towerAttackRange)
+                        {
+                            behaviorState = EnemyBehaviorState.AttackingTower;
+                            isAttackingTower = true;
+                        }
+                    }
+                    else
+                    {
+                        behaviorState = EnemyBehaviorState.MovingToEnd;
+                    }
+                    break;
+                    
+                case EnemyBehaviorState.AttackingTower:
+                    if (currentTowerTarget != null && currentTowerTarget.IsAlive)
+                    {
+                        TryAttackTower();
+                        
+                        // Check if still in range
+                        float distanceToTower = Vector3.Distance(transform.position, currentTowerTarget.Position);
+                        if (distanceToTower > enemyData.towerAttackRange)
+                        {
+                            behaviorState = EnemyBehaviorState.SeekingTower;
+                            isAttackingTower = false;
+                        }
+                    }
+                    else
+                    {
+                        // Tower destroyed or invalid
+                        currentTowerTarget = null;
+                        isAttackingTower = false;
+                        behaviorState = EnemyBehaviorState.SeekingTower;
+                    }
+                    break;
+                    
+                case EnemyBehaviorState.MovingToEnd:
+                    MoveAlongPath();
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// Find tower using distribution system to spread enemies across different towers
+        /// </summary>
+        private void FindDistributedTower()
+        {
+            if (EnemyTargetDistributor.Instance != null)
+            {
+                // Use distributor to get best tower assignment
+                currentTowerTarget = EnemyTargetDistributor.Instance.SelectTargetForEnemy(
+                    this, 
+                    transform.position, 
+                    enemyData.towerDetectionRange
+                );
+            }
+            else
+            {
+                // Fallback to nearest tower if no distributor
+                FindNearestTowerFallback();
+            }
+        }
+        
+        /// <summary>
+        /// Fallback method to find nearest tower when distributor is unavailable
+        /// </summary>
+        private void FindNearestTowerFallback()
+        {
+            if (TowerManager.Instance == null)
+                return;
+            
+            var towers = TowerManager.Instance.GetActiveTowers();
+            if (towers == null || towers.Count == 0)
+            {
+                currentTowerTarget = null;
+                return;
+            }
+            
+            Tower nearest = null;
+            float nearestDistance = float.MaxValue;
+            
+            foreach (var tower in towers)
+            {
+                if (tower == null || !tower.IsAlive)
+                    continue;
+                
+                float distance = Vector3.Distance(transform.position, tower.Position);
+                if (distance <= enemyData.towerDetectionRange && distance < nearestDistance)
+                {
+                    nearest = tower;
+                    nearestDistance = distance;
+                }
+            }
+            
+            currentTowerTarget = nearest;
+        }
+        
+        /// <summary>
+        /// Move towards the targeted tower
+        /// </summary>
+        private void MoveTowardsTower(Tower tower)
+        {
+            if (tower == null)
+                return;
+            
+            Vector3 previousPosition = transform.position;
+            Vector3 direction = (tower.Position - transform.position).normalized;
+            float currentSpeed = enemyData.moveSpeed * speedMultiplier;
+            float moveDistance = currentSpeed * Time.deltaTime;
+            
+            transform.position += direction * moveDistance;
+            
+            // Update sprite direction based on movement
+            UpdateMovementDirection(previousPosition);
+        }
+        
+        /// <summary>
+        /// Try to attack current tower target
+        /// </summary>
+        private void TryAttackTower()
+        {
+            if (currentTowerTarget == null || !currentTowerTarget.IsAlive)
+                return;
+            
+            float timeSinceLastAttack = Time.time - lastTowerAttackTime;
+            if (timeSinceLastAttack >= enemyData.towerAttackCooldown)
+            {
+                AttackTower(currentTowerTarget);
+                lastTowerAttackTime = Time.time;
+            }
+        }
+        
+        /// <summary>
+        /// Attack a specific tower
+        /// </summary>
+        private void AttackTower(Tower tower)
+        {
+            if (tower == null || !tower.IsAlive)
+                return;
+            
+            tower.TakeDamage(enemyData.towerAttackDamage);
+            Debug.Log($"{enemyData.enemyName} attacked {tower.TowerData.towerName} for {enemyData.towerAttackDamage} damage!");
+            
+            // Check if tower was destroyed
+            if (!tower.IsAlive)
+            {
+                // Unassign from distributor
+                if (EnemyTargetDistributor.Instance != null)
+                {
+                    EnemyTargetDistributor.Instance.UnassignEnemy(this);
+                }
+                
+                currentTowerTarget = null;
+                isAttackingTower = false;
+                behaviorState = EnemyBehaviorState.SeekingTower;
             }
         }
         
@@ -392,6 +619,12 @@ namespace TowerFusion
                 return;
             
             isAlive = false;
+            
+            // Unassign from tower distributor
+            if (EnemyTargetDistributor.Instance != null)
+            {
+                EnemyTargetDistributor.Instance.UnassignEnemy(this);
+            }
             
             // Give gold reward
             GameManager.Instance?.AddGold(enemyData.goldReward);

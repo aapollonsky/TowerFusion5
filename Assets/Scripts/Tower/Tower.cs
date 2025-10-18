@@ -22,6 +22,10 @@ namespace TowerFusion
         [SerializeField] private float[] spriteAngles = {0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f}; // Corresponding angles
         [SerializeField] private bool useRotationSprites = false; // Toggle to enable/disable sprite rotation
         
+        [Header("Health Bar")]
+        [SerializeField] private Transform healthBarContainer;
+        [SerializeField] private Transform healthBarFill;
+        
         // Components
         private TowerTraitManager traitManager;
         
@@ -29,6 +33,8 @@ namespace TowerFusion
         private Enemy currentTarget;
         private float lastAttackTime;
         private int currentUpgradeLevel = 0;
+        private float currentHealth;
+        private bool isAlive = true;
         
         // Charge time mechanics for Sniper trait
         private bool isCharging = false;
@@ -45,6 +51,7 @@ namespace TowerFusion
         // Events
         public System.Action<Tower, Enemy> OnTowerAttack;
         public System.Action<Tower> OnTowerUpgraded;
+        public System.Action<Tower> OnTowerDestroyed;
         
         // Properties
         public TowerData TowerData => towerData;
@@ -57,6 +64,9 @@ namespace TowerFusion
         public bool IsCharging => isCharging;
         public float ChargeProgress => isCharging ? Mathf.Clamp01((Time.time - chargeStartTime) / modifiedChargeTime) : 0f;
         public float ChargeTime => modifiedChargeTime;
+        public float CurrentHealth => currentHealth;
+        public float MaxHealth => towerData?.maxHealth ?? 100f;
+        public bool IsAlive => isAlive;
         
         private void Awake()
         {
@@ -84,6 +94,10 @@ namespace TowerFusion
         {
             towerData = data;
             
+            // Initialize health
+            currentHealth = towerData.maxHealth;
+            isAlive = true;
+            
             // Initialize modified stats with base values
             modifiedDamage = towerData.damage;
             modifiedRange = towerData.attackRange;
@@ -101,6 +115,7 @@ namespace TowerFusion
             SetupVisuals();
             SetupRangeCollider();
             RecalculateStats();
+            UpdateHealthBar();
             
             lastAttackTime = -towerData.GetAttackCooldown(); // Allow immediate first attack
         }
@@ -1128,6 +1143,66 @@ namespace TowerFusion
         {
             if (traitManager != null)
                 traitManager.ClearAllTraits();
+        }
+        
+        #endregion
+        
+        #region Health System
+        
+        /// <summary>
+        /// Take damage from enemies
+        /// </summary>
+        public void TakeDamage(float damage)
+        {
+            if (!isAlive || !towerData.isDestructible)
+                return;
+            
+            currentHealth -= damage;
+            UpdateHealthBar();
+            
+            Debug.Log($"Tower {towerData.towerName} took {damage} damage. Health: {currentHealth}/{MaxHealth}");
+            
+            if (currentHealth <= 0)
+            {
+                Die();
+            }
+        }
+        
+        /// <summary>
+        /// Tower is destroyed
+        /// </summary>
+        private void Die()
+        {
+            if (!isAlive)
+                return;
+            
+            isAlive = false;
+            
+            Debug.Log($"Tower {towerData.towerName} was destroyed!");
+            
+            // Notify systems
+            OnTowerDestroyed?.Invoke(this);
+            
+            // Destroy the tower
+            Destroy(gameObject, 0.1f);
+        }
+        
+        /// <summary>
+        /// Update health bar visual
+        /// </summary>
+        private void UpdateHealthBar()
+        {
+            if (healthBarFill != null)
+            {
+                float healthPercent = currentHealth / MaxHealth;
+                healthBarFill.localScale = new Vector3(healthPercent, 1f, 1f);
+            }
+            
+            if (healthBarContainer != null)
+            {
+                // Show health bar only when damaged
+                healthBarContainer.gameObject.SetActive(currentHealth < MaxHealth);
+            }
         }
         
         #endregion

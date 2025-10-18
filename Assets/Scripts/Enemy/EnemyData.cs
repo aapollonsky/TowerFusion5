@@ -175,6 +175,18 @@ namespace TowerFusion
         public bool isRegenerating = false;
         public float regenerationRate = 0f;
         
+        [Header("Tower Attacking")]
+        [Tooltip("Can this enemy attack towers?")]
+        public bool canAttackTowers = false;
+        [Tooltip("Damage dealt to towers per attack")]
+        public float towerAttackDamage = 10f;
+        [Tooltip("Range at which enemy can attack towers")]
+        public float towerAttackRange = 0.5f;
+        [Tooltip("Time between attacks on towers (seconds)")]
+        public float towerAttackCooldown = 1f;
+        [Tooltip("Detection range for finding towers to attack")]
+        public float towerDetectionRange = 5f;
+        
         [Header("Visual")]
         public Color enemyColor = Color.white;
         public Vector3 scale = Vector3.one;
