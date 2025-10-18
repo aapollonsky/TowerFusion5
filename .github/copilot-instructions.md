@@ -3,9 +3,13 @@
 ## Project Overview
 
 TowerFusion5 is a Unity 2D tower defense game where:
+- **Objective:** Defend your corn storage from thieving enemies
+- **Win Condition:** Defeat all waves while keeping at least 1 corn in storage
+- **Loss Condition:** All corn successfully stolen and returned to enemy spawn
 - Players place towers to defend against enemy waves
-- Enemies attack and destroy towers before reaching the end point
-- Each enemy attacks ONE tower at a time, with intelligent distribution across multiple towers
+- **85% of enemies** attack towers (Attackers) to clear the path
+- **15% of enemies** steal corn (Stealers) and return it to spawn
+- Each attacker attacks ONE tower at a time, with intelligent distribution
 - Maximum 3 towers can be under attack simultaneously per wave
 
 ## Architecture Patterns
@@ -18,11 +22,17 @@ TowerFusion5 is a Unity 2D tower defense game where:
 ### Singleton Managers
 - `TowerManager` - Handles tower placement and lifecycle
 - `EnemyManager` - Handles enemy spawning and wave management
-- `EnemyTargetDistributor` - Coordinates target selection across enemies
+- `EnemyTargetDistributor` - Coordinates target selection across attackers
+- `CornManager` - Manages corn theft mechanics and win/loss conditions
+
+### Enemy Roles
+- **Attacker (85%):** Attack towers, use target distribution, standard behavior
+- **Stealer (15%):** Bypass towers, steal corn, return to spawn
 
 ### State Machine
-- Enemy behavior uses states: `SeekingTower`, `AttackingTower`, `MovingToEnd`
-- Enemies prioritize tower destruction over reaching end point
+**Attacker States:** `SeekingTower` → `AttackingTower` → `MovingToEnd`
+**Stealer States:** `MovingToCorn` → `GrabbingCorn` → `ReturningWithCorn`
+- Stealers drop corn if killed, corn returns to storage automatically
 
 ## Coding Standards
 
@@ -69,10 +79,13 @@ Use XML documentation comments for public methods:
 
 ## Important Files
 
-- `Enemy.cs` - Enemy AI and attack behavior
+- `Enemy.cs` - Enemy AI, attack behavior, and corn stealing mechanics
+- `EnemyData.cs` - Enemy configuration including role assignment
 - `Tower.cs` - Tower health and destruction
-- `EnemyTargetDistributor.cs` - Target coordination
-- `TowerData.cs` / `EnemyData.cs` - Configuration assets
+- `EnemyTargetDistributor.cs` - Target coordination (Attackers only)
+- `CornStorage.cs` - Corn storage location and inventory
+- `CornManager.cs` - Corn theft system manager
+- `TowerData.cs` - Tower configurations
 
 ## When Creating New Features
 

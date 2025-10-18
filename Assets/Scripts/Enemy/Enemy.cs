@@ -38,11 +38,18 @@ namespace TowerFusion
         private Vector3 lastPosition;
         private float currentMovementAngle;
         
+        // Enemy role and corn stealing
+        private EnemyRole assignedRole = EnemyRole.Attacker;
+        private bool hasCorn = false;
+        private GameObject cornVisual;
+        private Vector3 spawnPoint;
+        private float cornGrabTimer = 0f;
+        
         // Tower attacking
         private Tower currentTowerTarget;
         private float lastTowerAttackTime;
         private bool isAttackingTower = false;
-        private enum EnemyBehaviorState { MovingToEnd, SeekingTower, AttackingTower }
+        private enum EnemyBehaviorState { MovingToEnd, SeekingTower, AttackingTower, MovingToCorn, GrabbingCorn, ReturningWithCorn }
         private EnemyBehaviorState behaviorState = EnemyBehaviorState.SeekingTower;
         
         // Sprite animation
@@ -64,6 +71,8 @@ namespace TowerFusion
         public bool IsSlowed => isSlowed;
         public bool IsBrittle => isBrittle;
         public bool IsBurning => isBurning;
+        public EnemyRole Role => assignedRole;
+        public bool HasCorn => hasCorn;
         
         private void Awake()
         {
@@ -84,6 +93,13 @@ namespace TowerFusion
             isAlive = true;
             hasReachedEnd = false;
             currentPathIndex = 0;
+            hasCorn = false;
+            
+            // Set default role from data
+            assignedRole = enemyData.defaultRole;
+            
+            // Store spawn point for return journey
+            spawnPoint = transform.position;
             
             // Store original color for status effect restoration
             if (spriteRenderer != null && !originalColorStored)
@@ -96,9 +112,41 @@ namespace TowerFusion
             SetupVisuals();
             SetupMovement();
             
+            // Determine initial behavior based on role
+            if (assignedRole == EnemyRole.Stealer)
+            {
+                behaviorState = EnemyBehaviorState.MovingToCorn;
+                Debug.Log($"{name} assigned as STEALER - heading to corn storage");
+            }
+            else
+            {
+                behaviorState = EnemyBehaviorState.SeekingTower;
+                Debug.Log($"{name} assigned as ATTACKER - seeking towers");
+            }
+            
             if (enemyData.isRegenerating && enemyData.regenerationRate > 0)
             {
                 StartCoroutine(RegenerateHealth());
+            }
+        }
+        
+        /// <summary>
+        /// Set the enemy's role (called by WaveManager for dynamic assignment)
+        /// </summary>
+        public void SetRole(EnemyRole role)
+        {
+            assignedRole = role;
+            
+            // Update behavior state based on role
+            if (assignedRole == EnemyRole.Stealer)
+            {
+                behaviorState = EnemyBehaviorState.MovingToCorn;
+                Debug.Log($"{name} role set to STEALER");
+            }
+            else
+            {
+                behaviorState = EnemyBehaviorState.SeekingTower;
+                Debug.Log($"{name} role set to ATTACKER");
             }
         }
         
@@ -167,15 +215,35 @@ namespace TowerFusion
             if (!isAlive || hasReachedEnd)
                 return;
             
-            // Update behavior based on enemy type
-            if (enemyData.canAttackTowers)
+            // Update behavior based on role and state
+            switch (behaviorState)
             {
-                UpdateTowerTargeting();
-                HandleTowerBehavior();
-            }
-            else
-            {
-                MoveAlongPath();
+                case EnemyBehaviorState.MovingToCorn:
+                    MoveTowardsCornStorage();
+                    break;
+                    
+                case EnemyBehaviorState.GrabbingCorn:
+                    GrabCorn();
+                    break;
+                    
+                case EnemyBehaviorState.ReturningWithCorn:
+                    ReturnToSpawn();
+                    break;
+                    
+                case EnemyBehaviorState.SeekingTower:
+                case EnemyBehaviorState.AttackingTower:
+                case EnemyBehaviorState.MovingToEnd:
+                    // Attacker behavior
+                    if (enemyData.canAttackTowers)
+                    {
+                        UpdateTowerTargeting();
+                        HandleTowerBehavior();
+                    }
+                    else
+                    {
+                        MoveAlongPath();
+                    }
+                    break;
             }
             
             // Always update animation, even if not moving
@@ -620,6 +688,12 @@ namespace TowerFusion
             
             isAlive = false;
             
+            // Drop corn if carrying
+            if (hasCorn)
+            {
+                DropCorn();
+            }
+            
             // Unassign from tower distributor
             if (EnemyTargetDistributor.Instance != null)
             {
@@ -658,6 +732,171 @@ namespace TowerFusion
             
             Destroy(gameObject);
         }
+        
+        #region Corn Stealing Behavior
+        
+        /// <summary>
+        /// Move towards corn storage
+        /// </summary>
+        private void MoveTowardsCornStorage()
+        {
+            if (CornManager.Instance == null)
+            {
+                // No corn manager, revert to normal behavior
+                behaviorState = EnemyBehaviorState.SeekingTower;
+                return;
+            }
+            
+            Vector3 cornPosition = CornManager.Instance.GetCornStoragePosition();
+            Vector3 direction = (cornPosition - transform.position).normalized;
+            
+            // Move towards corn
+            transform.position += direction * CurrentSpeed * Time.deltaTime;
+            
+            // Update sprite direction
+            if (direction.magnitude > 0.1f)
+            {
+                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                angle = -angle; // Flip Y axis for Unity's coordinate system
+                currentMovementAngle = angle;
+                UpdateDirectionalSprite(currentMovementAngle);
+            }
+            
+            lastPosition = transform.position;
+            
+            // Check if reached corn storage
+            if (CornManager.Instance.IsInGrabRange(transform.position))
+            {
+                // Check if corn still available
+                if (CornManager.Instance.Storage.HasCorn)
+                {
+                    behaviorState = EnemyBehaviorState.GrabbingCorn;
+                    cornGrabTimer = 0f;
+                    Debug.Log($"{name} reached corn storage, starting grab");
+                }
+                else
+                {
+                    // No corn left, become attacker
+                    Debug.LogWarning($"{name} reached empty corn storage, switching to attacker");
+                    assignedRole = EnemyRole.Attacker;
+                    behaviorState = EnemyBehaviorState.SeekingTower;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Grab corn from storage (takes time)
+        /// </summary>
+        private void GrabCorn()
+        {
+            cornGrabTimer += Time.deltaTime;
+            
+            if (cornGrabTimer >= enemyData.cornGrabDuration)
+            {
+                // Attempt to grab corn
+                CornManager.Instance.RegisterCornGrab(this);
+                hasCorn = true;
+                
+                // Create visual indicator
+                CreateCornVisual();
+                
+                // Apply speed penalty
+                speedMultiplier *= enemyData.cornCarrySpeedMultiplier;
+                
+                // Start returning to spawn
+                behaviorState = EnemyBehaviorState.ReturningWithCorn;
+                Debug.Log($"{name} grabbed corn! Returning to spawn with {speedMultiplier}x speed");
+            }
+        }
+        
+        /// <summary>
+        /// Return to spawn point with corn
+        /// </summary>
+        private void ReturnToSpawn()
+        {
+            Vector3 direction = (spawnPoint - transform.position).normalized;
+            
+            // Move towards spawn
+            transform.position += direction * CurrentSpeed * Time.deltaTime;
+            
+            // Update sprite direction
+            if (direction.magnitude > 0.1f)
+            {
+                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                angle = -angle; // Flip Y axis
+                currentMovementAngle = angle;
+                UpdateDirectionalSprite(currentMovementAngle);
+            }
+            
+            lastPosition = transform.position;
+            
+            // Check if reached spawn
+            float distanceToSpawn = Vector3.Distance(transform.position, spawnPoint);
+            if (distanceToSpawn < 0.5f) // Close enough to spawn
+            {
+                // Successfully stole corn!
+                CornManager.Instance.RegisterCornSteal(this);
+                Debug.Log($"{name} successfully returned corn to spawn!");
+                
+                // Mark as complete and notify systems (like ReachEnd does)
+                hasReachedEnd = true;
+                OnEnemyReachedEnd?.Invoke(this);
+                EnemyManager.Instance?.OnEnemyReachedEnd(this);
+                
+                // Destroy enemy (successful theft)
+                Destroy(gameObject);
+            }
+        }
+        
+        /// <summary>
+        /// Drop corn when killed
+        /// </summary>
+        private void DropCorn()
+        {
+            if (!hasCorn)
+                return;
+            
+            hasCorn = false;
+            
+            // Return corn to storage
+            CornManager.Instance.ReturnCornToStorage();
+            
+            // Destroy visual
+            if (cornVisual != null)
+            {
+                Destroy(cornVisual);
+            }
+            
+            // Restore speed
+            speedMultiplier /= enemyData.cornCarrySpeedMultiplier;
+            
+            Debug.Log($"{name} dropped corn - returned to storage");
+        }
+        
+        /// <summary>
+        /// Create visual indicator of corn being carried
+        /// </summary>
+        private void CreateCornVisual()
+        {
+            // Simple approach: Create a yellow circle above enemy
+            // TODO: Replace with actual corn sprite
+            cornVisual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            cornVisual.transform.SetParent(transform);
+            cornVisual.transform.localPosition = Vector3.up * 0.5f;
+            cornVisual.transform.localScale = Vector3.one * 0.3f;
+            
+            // Make it yellow (corn-ish)
+            Renderer renderer = cornVisual.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.material.color = Color.yellow;
+            }
+            
+            // Remove collider
+            Destroy(cornVisual.GetComponent<Collider>());
+        }
+        
+        #endregion
         
         /// <summary>
         /// Update health bar visual

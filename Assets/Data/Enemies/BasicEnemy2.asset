@@ -86,5 +86,6 @@ MonoBehaviour:
   towerAttackDamage: 7
   towerAttackRange: 1
   towerAttackCooldown: 2
+  towerDetectionRange: 7
   enemyColor: {r: 1, g: 1, b: 1, a: 1}
   scale: {x: 1, y: 1, z: 1}

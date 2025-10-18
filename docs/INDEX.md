@@ -11,6 +11,13 @@
 
 ## 🎮 Core Systems
 
+### Corn Theft System (NEW! 🌽)
+- **[CORN_THEFT_COMPLETE.md](CORN_THEFT_COMPLETE.md)** - ⭐ Complete implementation summary
+- **[CORN_THEFT_INTEGRATION.md](CORN_THEFT_INTEGRATION.md)** - Integration guide and usage
+- **[CORN_THEFT_SYSTEM.md](CORN_THEFT_SYSTEM.md)** - Full system design and architecture
+- **[CORN_THEFT_SETUP.md](CORN_THEFT_SETUP.md)** - Quick setup guide for Unity
+- **[UNITY_CORN_SCRIPT_FIX.md](UNITY_CORN_SCRIPT_FIX.md)** - Troubleshooting script visibility
+
 ### Enemy System
 - **[ENEMY_TOWER_ATTACK_SYSTEM.md](ENEMY_TOWER_ATTACK_SYSTEM.md)** - How enemies attack towers
 - **[ENEMY_TARGET_DISTRIBUTION.md](ENEMY_TARGET_DISTRIBUTION.md)** - Enemy target selection algorithm

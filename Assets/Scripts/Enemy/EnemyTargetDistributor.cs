@@ -32,9 +32,16 @@ namespace TowerFusion
         
         /// <summary>
         /// Select best tower for an enemy to target, distributing load across towers
+        /// Only applies to Attacker enemies - Stealer enemies ignore this system
         /// </summary>
         public Tower SelectTargetForEnemy(Enemy enemy, Vector3 enemyPosition, float detectionRange)
         {
+            // Skip distribution for Stealer enemies (they go straight to corn)
+            if (enemy != null && enemy.Role == EnemyRole.Stealer)
+            {
+                return null;
+            }
+            
             if (TowerManager.Instance == null)
                 return null;
             

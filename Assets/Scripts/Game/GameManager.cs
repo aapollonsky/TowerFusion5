@@ -11,6 +11,11 @@ namespace TowerFusion
         public int startingHealth = 20;
         public int startingGold = 1000;
         
+        [Header("Corn Theft Settings")]
+        [SerializeField] private bool enableCornTheftMode = true;
+        [Tooltip("If true, game loss is based on corn theft. If false, uses traditional health system.")]
+        [SerializeField] private bool useCornForLossCondition = true;
+        
         [Header("Current Game State")]
         [SerializeField] private int currentHealth;
         [SerializeField] private int currentGold;
@@ -49,6 +54,25 @@ namespace TowerFusion
             }
         }
         
+        private void Start()
+        {
+            // Subscribe to corn theft events if enabled
+            if (enableCornTheftMode && CornManager.Instance != null)
+            {
+                CornManager.Instance.OnGameLostToCorn += HandleCornGameLost;
+                Debug.Log("GameManager: Subscribed to corn theft events");
+            }
+        }
+        
+        private void OnDestroy()
+        {
+            // Unsubscribe from events
+            if (CornManager.Instance != null)
+            {
+                CornManager.Instance.OnGameLostToCorn -= HandleCornGameLost;
+            }
+        }
+        
         private void InitializeGame()
         {
             currentHealth = startingHealth;
@@ -56,7 +80,7 @@ namespace TowerFusion
             currentWave = 0;
             gameState = GameState.Preparing;
             
-            Debug.Log("Game initialized - Tower Fusion 4");
+            Debug.Log("Game initialized - Tower Fusion 5");
         }
         
         public void ModifyHealth(int amount)
@@ -65,9 +89,23 @@ namespace TowerFusion
             currentHealth = Mathf.Max(0, currentHealth);
             OnHealthChanged?.Invoke(currentHealth);
             
-            if (currentHealth <= 0)
+            // Check loss condition based on mode
+            if (useCornForLossCondition)
             {
-                GameOver();
+                // In corn theft mode, health damage doesn't cause game over
+                // Only corn theft causes loss (handled by CornManager)
+                if (currentHealth <= 0)
+                {
+                    Debug.LogWarning("Health depleted, but corn theft mode is active. Game continues until corn stolen.");
+                }
+            }
+            else
+            {
+                // Traditional health-based game over
+                if (currentHealth <= 0)
+                {
+                    GameOver();
+                }
             }
         }
         
@@ -124,10 +162,31 @@ namespace TowerFusion
         
         public void Victory()
         {
+            // Check if corn theft mode requires corn validation
+            if (enableCornTheftMode && CornManager.Instance != null)
+            {
+                if (CornManager.Instance.RemainingCorn <= 0)
+                {
+                    Debug.LogWarning("Cannot win - all corn has been taken!");
+                    return;
+                }
+                
+                Debug.Log($"Victory with {CornManager.Instance.RemainingCorn} corn remaining!");
+            }
+            
             gameState = GameState.Victory;
             OnGameStateChanged?.Invoke(gameState);
             OnVictory?.Invoke();
             Debug.Log("Victory!");
+        }
+        
+        /// <summary>
+        /// Handle game loss due to corn theft
+        /// </summary>
+        private void HandleCornGameLost()
+        {
+            Debug.LogError("Game Lost - All corn has been stolen!");
+            GameOver();
         }
         
         public void RestartGame()

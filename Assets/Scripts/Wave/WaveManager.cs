@@ -11,6 +11,10 @@ namespace TowerFusion
     {
     [Header("Wave Configuration")]
     [SerializeField] private Transform enemyContainer;
+    
+    [Header("Enemy Role Distribution")]
+    [SerializeField] [Range(0f, 1f)] private float stealerPercentage = 0.15f; // 15% stealers, 85% attackers
+    [SerializeField] private bool enableCornTheft = true; // Toggle corn theft system
         
         // Singleton instance
         public static WaveManager Instance { get; private set; }
@@ -166,11 +170,32 @@ namespace TowerFusion
                 Debug.LogError("Cannot spawn enemy - missing data!");
                 return;
             }
+            
             Vector3 spawnPosition = MapManager.Instance?.GetEnemySpawnPoint() ?? Vector3.zero;
             Enemy enemy = EnemyManager.Instance?.SpawnEnemy(spawnPosition, enemyData);
-            if (enemy != null && enemyContainer != null)
+            
+            if (enemy != null)
             {
-                enemy.transform.SetParent(enemyContainer);
+                // Assign role based on distribution (85% Attacker, 15% Stealer)
+                if (enableCornTheft && CornManager.Instance != null)
+                {
+                    float roll = Random.value;
+                    EnemyRole assignedRole = roll < stealerPercentage ? EnemyRole.Stealer : EnemyRole.Attacker;
+                    enemy.SetRole(assignedRole);
+                    
+                    Debug.Log($"Spawned {enemy.name} as {assignedRole} (roll: {roll:F2}, threshold: {stealerPercentage:F2})");
+                }
+                else
+                {
+                    // Corn theft disabled or no CornManager, all enemies are attackers
+                    enemy.SetRole(EnemyRole.Attacker);
+                }
+                
+                // Parent to container
+                if (enemyContainer != null)
+                {
+                    enemy.transform.SetParent(enemyContainer);
+                }
             }
         }
         
