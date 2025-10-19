@@ -11,6 +11,20 @@ namespace TowerFusion
         public int startingHealth = 20;
         public int startingGold = 1000;
         
+        [Header("Wave Completion Rewards")]
+        [Tooltip("Base gold bonus for completing any wave")]
+        public int waveCompletionBaseBonus = 50;
+        [Tooltip("Additional gold per wave number (Wave 1 = +10, Wave 2 = +20, etc.)")]
+        public int waveCompletionPerWaveBonus = 10;
+        
+        [Header("Enemy Scaling")]
+        [Tooltip("Enable enemy health scaling per wave")]
+        public bool enableHealthScaling = true;
+        [Tooltip("Health increase percentage per wave (e.g., 0.1 = 10% more health per wave)")]
+        [Range(0f, 1f)] public float healthScalingPerWave = 0.15f;
+        [Tooltip("Maximum health multiplier cap (e.g., 3.0 = max 300% of base health)")]
+        [Range(1f, 10f)] public float maxHealthMultiplier = 3.0f;
+        
         [Header("Corn Theft Settings")]
         [SerializeField] private bool enableCornTheftMode = true;
         [Tooltip("If true, game loss is based on corn theft. If false, uses traditional health system.")]
@@ -123,7 +137,31 @@ namespace TowerFusion
         public void AddGold(int amount)
         {
             currentGold += amount;
+            Debug.Log($"[GameManager] AddGold({amount}) - New total: {currentGold} gold");
             OnGoldChanged?.Invoke(currentGold);
+        }
+        
+        /// <summary>
+        /// Calculate scaled health for enemy based on current wave
+        /// </summary>
+        public float GetScaledEnemyHealth(float baseHealth)
+        {
+            if (!enableHealthScaling || currentWave <= 1)
+                return baseHealth;
+            
+            // Calculate multiplier: 1.0 + (wave - 1) * scalingPerWave
+            // Wave 1: 1.0x (no scaling)
+            // Wave 2: 1.15x (15% more)
+            // Wave 3: 1.30x (30% more)
+            // etc.
+            float multiplier = 1.0f + ((currentWave - 1) * healthScalingPerWave);
+            
+            // Cap at max multiplier
+            multiplier = Mathf.Min(multiplier, maxHealthMultiplier);
+            
+            float scaledHealth = baseHealth * multiplier;
+            
+            return scaledHealth;
         }
         
         public void StartWave()
@@ -147,8 +185,10 @@ namespace TowerFusion
                 gameState = GameState.Preparing;
                 OnGameStateChanged?.Invoke(gameState);
                 
-                // Add wave completion bonus
-                AddGold(50 + (currentWave * 10));
+                // Add wave completion bonus using configurable formula
+                int bonus = waveCompletionBaseBonus + (currentWave * waveCompletionPerWaveBonus);
+                Debug.Log($"[GameManager] Wave {currentWave} completed - awarding bonus of {bonus} gold");
+                AddGold(bonus);
             }
         }
         

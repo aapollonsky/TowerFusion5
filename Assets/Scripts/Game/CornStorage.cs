@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using TMPro;
 
 namespace TowerFusion
 {
@@ -17,9 +18,16 @@ namespace TowerFusion
         [SerializeField] private Transform cornVisualParent;
         [SerializeField] private Color visualColor = new Color(1f, 0.8f, 0f); // Golden yellow
         
+        [Header("UI Display")]
+        [SerializeField] private bool showCornCount = true;
+        [SerializeField] private Vector3 textOffset = new Vector3(0f, 2f, 0f);
+        [SerializeField] private float textSize = 3f;
+        [SerializeField] private Color textColor = Color.white;
+        
         private int currentCornCount;
         private Vector3 storagePosition;
         private GameObject autoCreatedVisual;
+        private TextMeshPro cornCountText;
         
         // Properties
         public Vector3 Position => storagePosition;
@@ -42,7 +50,33 @@ namespace TowerFusion
         private void Start()
         {
             CreateVisualIfNeeded();
+            CreateCornCountText();
             UpdateVisuals();
+        }
+        
+        /// <summary>
+        /// Create floating text to show corn count
+        /// </summary>
+        private void CreateCornCountText()
+        {
+            if (!showCornCount)
+                return;
+            
+            // Create text object
+            GameObject textObj = new GameObject("CornCountText");
+            textObj.transform.SetParent(transform);
+            textObj.transform.localPosition = textOffset;
+            
+            // Add TextMeshPro component
+            cornCountText = textObj.AddComponent<TextMeshPro>();
+            cornCountText.text = $"{currentCornCount}";
+            cornCountText.fontSize = textSize;
+            cornCountText.color = textColor;
+            cornCountText.alignment = TextAlignmentOptions.Center;
+            cornCountText.fontStyle = FontStyles.Bold;
+            
+            // Make it always face camera
+            textObj.AddComponent<Billboard>();
         }
         
         /// <summary>
@@ -131,15 +165,27 @@ namespace TowerFusion
         /// </summary>
         private void UpdateVisuals()
         {
-            if (cornVisualParent == null)
-                return;
+            // Update 3D pile scale
+            if (cornVisualParent != null)
+            {
+                // Simple approach: Scale the corn pile based on remaining corn
+                float scalePercent = (float)currentCornCount / initialCornCount;
+                cornVisualParent.localScale = Vector3.one * Mathf.Max(0.3f, scalePercent);
+            }
             
-            // Simple approach: Scale the corn pile based on remaining corn
-            float scalePercent = (float)currentCornCount / initialCornCount;
-            cornVisualParent.localScale = Vector3.one * Mathf.Max(0.3f, scalePercent);
-            
-            // Alternative: Could instantiate individual corn objects
-            // For now, simple scaling is sufficient
+            // Update text display
+            if (cornCountText != null)
+            {
+                cornCountText.text = $"🌽 {currentCornCount}";
+                
+                // Change color based on amount
+                if (currentCornCount <= 5)
+                    cornCountText.color = Color.red; // Critical
+                else if (currentCornCount <= 10)
+                    cornCountText.color = Color.yellow; // Warning
+                else
+                    cornCountText.color = textColor; // Normal
+            }
         }
         
         /// <summary>
@@ -158,6 +204,12 @@ namespace TowerFusion
             if (autoCreatedVisual != null)
             {
                 Destroy(autoCreatedVisual);
+            }
+            
+            // Clean up text
+            if (cornCountText != null && cornCountText.gameObject != null)
+            {
+                Destroy(cornCountText.gameObject);
             }
         }
         

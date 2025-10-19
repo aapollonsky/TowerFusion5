@@ -184,8 +184,8 @@ namespace TowerFusion
         [Range(0.1f, 2f)] public float cornCarrySpeedMultiplier = 0.8f;
         
         [Header("Tower Attacking")]
-        [Tooltip("Can this enemy attack towers?")]
-        public bool canAttackTowers = false;
+        [Tooltip("Can this enemy attack towers? (Recommended: true for Attackers, false for pure Stealers)")]
+        public bool canAttackTowers = true;
         [Tooltip("Damage dealt to towers per attack")]
         public float towerAttackDamage = 10f;
         [Tooltip("Range at which enemy can attack towers")]
@@ -193,7 +193,7 @@ namespace TowerFusion
         [Tooltip("Time between attacks on towers (seconds)")]
         public float towerAttackCooldown = 1f;
         [Tooltip("Detection range for finding towers to attack")]
-        public float towerDetectionRange = 5f;
+        public float towerDetectionRange = 10f;
         
         [Header("Visual")]
         public Color enemyColor = Color.white;
