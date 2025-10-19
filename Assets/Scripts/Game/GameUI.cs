@@ -181,6 +181,11 @@ namespace TowerFusion.UI
                 GameManager.Instance.OnGameStateChanged += OnGameStateChanged;
                 GameManager.Instance.OnGameOver += OnGameOver;
                 GameManager.Instance.OnVictory += OnVictory;
+                
+                // Immediately update displays with current values
+                UpdateHealthDisplay(GameManager.Instance.CurrentHealth);
+                UpdateGoldDisplay(GameManager.Instance.CurrentGold);
+                UpdateWaveDisplay(GameManager.Instance.CurrentWave);
             }
             
             if (TowerManager.Instance != null)

@@ -32,7 +32,7 @@ namespace TowerFusion
         
         [Header("Current Game State")]
         [SerializeField] private int currentHealth;
-        [SerializeField] private int currentGold;
+        [SerializeField] private int currentGold = 1000; // Pre-set to match startingGold default
         [SerializeField] private int currentWave;
         [SerializeField] private GameState gameState;
         
@@ -68,6 +68,17 @@ namespace TowerFusion
             }
         }
         
+        private void OnValidate()
+        {
+            // Sync current gold with starting gold when inspector values change
+            // This ensures the display shows the correct configured value
+            if (!Application.isPlaying)
+            {
+                currentGold = startingGold;
+                currentHealth = startingHealth;
+            }
+        }
+        
         private void Start()
         {
             // Subscribe to corn theft events if enabled
@@ -94,7 +105,12 @@ namespace TowerFusion
             currentWave = 0;
             gameState = GameState.Preparing;
             
-            Debug.Log("Game initialized - Tower Fusion 5");
+            Debug.Log($"Game initialized - Starting Gold: {startingGold}, Current Gold: {currentGold}");
+            
+            // Notify UI of initial values
+            OnHealthChanged?.Invoke(currentHealth);
+            OnGoldChanged?.Invoke(currentGold);
+            OnWaveChanged?.Invoke(currentWave);
         }
         
         public void ModifyHealth(int amount)
