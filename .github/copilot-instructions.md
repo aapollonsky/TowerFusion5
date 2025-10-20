@@ -118,5 +118,7 @@ Use XML documentation comments for public methods:
 - Dictionary lookups for assignments are O(1)
 - Avoid expensive operations in `Update()` - use events instead
 
-Store all documentation in the docs folder
+## Alex's Instructions (high priority)
+- Store all documentation in the docs folder
+- Do not generate documents unless explicitly asked to
 

@@ -562,8 +562,8 @@ namespace TowerFusion
         /// </summary>
         private void OnMouseDown()
         {
-            ShowRangeIndicatorTemporarily(3f);
-            Debug.Log($"Clicked on {name} - showing range indicator (Range: {modifiedRange})");
+            //ShowRangeIndicatorTemporarily(3f);
+            //Debug.Log($"Clicked on {name} - showing range indicator (Range: {modifiedRange})");
         }
         
         /// <summary>
