@@ -25,7 +25,7 @@ MonoBehaviour:
     up: {fileID: -1298067419, guid: 6dab17c8f2cea4fc3a301a0ac936557e, type: 3}
     upRight: {fileID: -685175985, guid: 83c93c33f14c64b62915f1dd9493d0d5, type: 3}
     useOnly4Directions: 0
-    useAnimation: 1
+    useAnimation: 0
     animationFrames:
       frameRate: 8
       looping: 1
@@ -69,9 +69,9 @@ MonoBehaviour:
       - {fileID: -1343695341, guid: 83c93c33f14c64b62915f1dd9493d0d5, type: 3}
       - {fileID: -790653597, guid: 83c93c33f14c64b62915f1dd9493d0d5, type: 3}
       - {fileID: -1074126675, guid: 83c93c33f14c64b62915f1dd9493d0d5, type: 3}
-  maxHealth: 100
-  moveSpeed: 2
-  goldReward: 10
+  maxHealth: 130
+  moveSpeed: 3
+  goldReward: 5
   damageToPlayer: 1
   physicalResistance: 0
   magicResistance: 0
@@ -82,10 +82,13 @@ MonoBehaviour:
   isFast: 0
   isRegenerating: 0
   regenerationRate: 0
+  defaultRole: 0
+  cornGrabDuration: 1
+  cornCarrySpeedMultiplier: 0.8
   canAttackTowers: 1
   towerAttackDamage: 5
   towerAttackRange: 0.5
-  towerAttackCooldown: 2
-  towerDetectionRange: 7
+  towerAttackCooldown: 4
+  towerDetectionRange: 100
   enemyColor: {r: 1, g: 1, b: 1, a: 1}
   scale: {x: 1, y: 1, z: 1}

@@ -16,10 +16,12 @@ MonoBehaviour:
   description: 
   towerSprite: {fileID: 21300000, guid: 6943dff7c602d491483a7cbc5ca8bb55, type: 3}
   buildCost: 50
-  damage: 10
+  damage: 15
   attackRange: 3
   attackSpeed: 1
   damageType: 0
+  maxHealth: 100
+  isDestructible: 1
   targetingMode: 0
   canTargetFlying: 1
   canTargetGround: 1

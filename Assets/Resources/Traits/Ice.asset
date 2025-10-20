@@ -55,7 +55,7 @@ MonoBehaviour:
   trapPrefab: {fileID: 0}
   hasIndependentProjectile: 1
   projectilePrefab: {fileID: 9783899183, guid: fed4240585aa492fa77399942b2cdba1, type: 3}
-  projectileCooldown: 3
+  projectileCooldown: 2
   projectileSpeed: 3
   projectileDamage: 15
   projectileDamageType: 1

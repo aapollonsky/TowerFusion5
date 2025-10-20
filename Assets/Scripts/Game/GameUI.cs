@@ -35,6 +35,11 @@ namespace TowerFusion.UI
         
         [Header("Trait Selection")]
         [SerializeField] private GameObject traitCardDialog;
+        [Tooltip("Optional: Container for 3 trait cards. If not assigned, will auto-find or create within traitCardDialog")]
+        [SerializeField] private Transform traitCardsContainer; // Container for 3 trait cards
+        [Tooltip("Optional: Prefab for individual trait card. If not assigned, uses legacy single-card UI")]
+        [SerializeField] private GameObject traitCardPrefab; // Prefab for individual trait card
+        [Tooltip("Legacy single-card UI (used as fallback if traitCardPrefab not assigned)")]
         [SerializeField] private TextMeshProUGUI traitNameText;
         [SerializeField] private TextMeshProUGUI traitDescriptionText;
         [SerializeField] private Image traitIconImage;
@@ -54,6 +59,8 @@ namespace TowerFusion.UI
         private bool traitButtonUsedThisWave = false;
         private TowerTrait selectedTrait = null;
         private TowerTrait availableTraitForAssignment = null;
+        private TowerTrait[] currentTraitOptions = new TowerTrait[3]; // 3 traits to choose from
+        private GameObject[] traitCardInstances = new GameObject[3]; // UI instances
         
         private void Start()
         {
@@ -473,32 +480,32 @@ namespace TowerFusion.UI
                 return;
             }
             
-            // Generate random trait based on probabilities
-            selectedTrait = GenerateRandomTrait();
+            // Generate 3 unique random traits
+            currentTraitOptions = Generate3UniqueTraits();
             
-            if (selectedTrait == null)
+            if (currentTraitOptions == null || currentTraitOptions[0] == null)
             {
-                Debug.LogWarning("No trait could be generated! Check that availableTraits contains valid trait assets.");
+                Debug.LogWarning("No traits could be generated! Check that availableTraits contains valid trait assets.");
                 return;
             }
             
-            Debug.Log($"Generated random trait: {selectedTrait.traitName} - {selectedTrait.description}");
+            Debug.Log($"Generated 3 trait options: {string.Join(", ", System.Array.ConvertAll(currentTraitOptions, t => t?.traitName ?? "null"))}");
             
-            // Update UI with trait info
-            if (traitNameText != null)
-                traitNameText.text = selectedTrait.traitName;
-            
-            if (traitDescriptionText != null)
-                traitDescriptionText.text = selectedTrait.description;
-            
-            if (traitIconImage != null && selectedTrait.traitIcon != null)
-                traitIconImage.sprite = selectedTrait.traitIcon;
+            // Use new 3-card system if prefab is assigned, otherwise fall back to legacy single-card UI
+            if (traitCardPrefab != null)
+            {
+                Display3TraitCards();
+            }
+            else
+            {
+                DisplayLegacySingleTraitCard();
+            }
             
             // Show dialog
             if (traitCardDialog != null)
             {
                 traitCardDialog.SetActive(true);
-                Debug.Log($"Showing trait card dialog for: {selectedTrait.traitName}");
+                Debug.Log("Showing trait selection dialog with 3 options");
             }
             else
             {
@@ -509,6 +516,201 @@ namespace TowerFusion.UI
             traitButtonUsedThisWave = true;
             if (traitButton != null)
                 traitButton.interactable = false;
+        }
+        
+        /// <summary>
+        /// Display 3 trait cards in the new UI system
+        /// </summary>
+        private void Display3TraitCards()
+        {
+            // Ensure container exists
+            EnsureTraitCardsContainer();
+            
+            if (traitCardsContainer == null)
+            {
+                Debug.LogWarning("Could not find or create trait cards container. Falling back to legacy UI.");
+                DisplayLegacySingleTraitCard();
+                return;
+            }
+            
+            // Hide legacy single-card UI elements
+            HideLegacyUIElements();
+            
+            // Clear existing cards
+            ClearTraitCards();
+            
+            // Create 3 trait cards
+            for (int i = 0; i < 3; i++)
+            {
+                if (currentTraitOptions[i] == null)
+                    continue;
+                
+                GameObject cardObj = Instantiate(traitCardPrefab, traitCardsContainer);
+                traitCardInstances[i] = cardObj;
+                
+                // Setup card UI (assuming prefab has these components)
+                var nameText = cardObj.transform.Find("TraitName")?.GetComponent<TextMeshProUGUI>();
+                var descText = cardObj.transform.Find("TraitDescription")?.GetComponent<TextMeshProUGUI>();
+                var iconImage = cardObj.transform.Find("TraitIcon")?.GetComponent<Image>();
+                var selectButton = cardObj.GetComponent<Button>();
+                
+                if (nameText != null)
+                    nameText.text = currentTraitOptions[i].traitName;
+                
+                if (descText != null)
+                    descText.text = currentTraitOptions[i].description;
+                
+                if (iconImage != null && currentTraitOptions[i].traitIcon != null)
+                    iconImage.sprite = currentTraitOptions[i].traitIcon;
+                
+                // Add button listener to select this trait
+                if (selectButton != null)
+                {
+                    int index = i; // Capture for closure
+                    selectButton.onClick.AddListener(() => SelectTrait(index));
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Display single trait card (legacy UI fallback)
+        /// </summary>
+        private void DisplayLegacySingleTraitCard()
+        {
+            // Use first trait from options (fallback to old behavior)
+            selectedTrait = currentTraitOptions[0];
+            
+            // Show legacy UI elements
+            ShowLegacyUIElements();
+            
+            if (traitNameText != null)
+                traitNameText.text = selectedTrait.traitName;
+            
+            if (traitDescriptionText != null)
+                traitDescriptionText.text = selectedTrait.description;
+            
+            if (traitIconImage != null && selectedTrait.traitIcon != null)
+                traitIconImage.sprite = selectedTrait.traitIcon;
+                
+            Debug.LogWarning("Using legacy single-card UI. For 3-card selection, assign traitCardsContainer and traitCardPrefab in inspector.");
+        }
+        
+        /// <summary>
+        /// Hide legacy single-card UI elements (used when showing 3-card system)
+        /// </summary>
+        private void HideLegacyUIElements()
+        {
+            if (traitNameText != null)
+                traitNameText.gameObject.SetActive(false);
+            
+            if (traitDescriptionText != null)
+                traitDescriptionText.gameObject.SetActive(false);
+            
+            if (traitIconImage != null)
+                traitIconImage.gameObject.SetActive(false);
+            
+            if (traitDoneButton != null)
+                traitDoneButton.gameObject.SetActive(false);
+        }
+        
+        /// <summary>
+        /// Show legacy single-card UI elements (used when falling back to legacy UI)
+        /// </summary>
+        private void ShowLegacyUIElements()
+        {
+            if (traitNameText != null)
+                traitNameText.gameObject.SetActive(true);
+            
+            if (traitDescriptionText != null)
+                traitDescriptionText.gameObject.SetActive(true);
+            
+            if (traitIconImage != null)
+                traitIconImage.gameObject.SetActive(true);
+            
+            if (traitDoneButton != null)
+                traitDoneButton.gameObject.SetActive(true);
+        }
+        
+        /// <summary>
+        /// Clear all trait card instances
+        /// </summary>
+        private void ClearTraitCards()
+        {
+            for (int i = 0; i < traitCardInstances.Length; i++)
+            {
+                if (traitCardInstances[i] != null)
+                {
+                    Destroy(traitCardInstances[i]);
+                    traitCardInstances[i] = null;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Ensure trait cards container exists within the trait dialog
+        /// Auto-finds or creates it if needed
+        /// </summary>
+        private void EnsureTraitCardsContainer()
+        {
+            // If already assigned, use it
+            if (traitCardsContainer != null)
+                return;
+            
+            // If no dialog, can't create container
+            if (traitCardDialog == null)
+            {
+                Debug.LogError("traitCardDialog is null! Cannot find or create trait cards container.");
+                return;
+            }
+            
+            // Try to find existing container by name
+            Transform existingContainer = traitCardDialog.transform.Find("TraitCardsContainer");
+            if (existingContainer != null)
+            {
+                traitCardsContainer = existingContainer;
+                Debug.Log("Found existing TraitCardsContainer in traitCardDialog");
+                return;
+            }
+            
+            // Create new container within the dialog
+            GameObject containerObj = new GameObject("TraitCardsContainer");
+            containerObj.transform.SetParent(traitCardDialog.transform, false);
+            
+            // Setup RectTransform
+            RectTransform rectTransform = containerObj.AddComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0, 0);
+            rectTransform.anchorMax = new Vector2(1, 1);
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+            
+            // Add HorizontalLayoutGroup for auto-layout
+            var layoutGroup = containerObj.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+            layoutGroup.spacing = 20;
+            layoutGroup.childAlignment = TextAnchor.MiddleCenter;
+            layoutGroup.childForceExpandWidth = true;
+            layoutGroup.childForceExpandHeight = true;
+            layoutGroup.padding = new RectOffset(20, 20, 20, 20);
+            
+            traitCardsContainer = containerObj.transform;
+            Debug.Log("Created new TraitCardsContainer in traitCardDialog with HorizontalLayoutGroup");
+        }
+        
+        /// <summary>
+        /// User selects one of the 3 traits
+        /// </summary>
+        private void SelectTrait(int index)
+        {
+            if (index < 0 || index >= currentTraitOptions.Length || currentTraitOptions[index] == null)
+            {
+                Debug.LogError($"Invalid trait selection index: {index}");
+                return;
+            }
+            
+            selectedTrait = currentTraitOptions[index];
+            Debug.Log($"User selected trait: {selectedTrait.traitName}");
+            
+            // Accept the selected trait
+            AcceptTrait();
         }
         
         /// <summary>
@@ -526,11 +728,15 @@ namespace TowerFusion.UI
             // Update UI to show trait is available
             UpdateTraitAssignmentUI();
             
+            // Clean up trait card instances
+            ClearTraitCards();
+            
             // Hide dialog
             if (traitCardDialog != null)
                 traitCardDialog.SetActive(false);
             
             selectedTrait = null;
+            currentTraitOptions = new TowerTrait[3];
         }
         
         /// <summary>
@@ -571,6 +777,55 @@ namespace TowerFusion.UI
             
             // Fallback to first available trait
             return availableTraits[0];
+        }
+        
+        /// <summary>
+        /// Generate 3 unique random traits
+        /// </summary>
+        private TowerTrait[] Generate3UniqueTraits()
+        {
+            if (availableTraits == null || availableTraits.Length == 0)
+                return null;
+            
+            TowerTrait[] selectedTraits = new TowerTrait[3];
+            System.Collections.Generic.List<TowerTrait> availablePool = new System.Collections.Generic.List<TowerTrait>();
+            
+            // Create pool of all available traits (excluding nulls)
+            foreach (var trait in availableTraits)
+            {
+                if (trait != null)
+                    availablePool.Add(trait);
+            }
+            
+            if (availablePool.Count == 0)
+            {
+                Debug.LogError("No valid traits in availableTraits!");
+                return null;
+            }
+            
+            // If we have fewer than 3 traits total, allow duplicates
+            bool allowDuplicates = availablePool.Count < 3;
+            
+            // Generate 3 traits
+            for (int i = 0; i < 3; i++)
+            {
+                TowerTrait trait = GenerateRandomTrait();
+                
+                // If not allowing duplicates, regenerate until we get a unique one
+                if (!allowDuplicates)
+                {
+                    int attempts = 0;
+                    while (System.Array.IndexOf(selectedTraits, trait) >= 0 && attempts < 50)
+                    {
+                        trait = GenerateRandomTrait();
+                        attempts++;
+                    }
+                }
+                
+                selectedTraits[i] = trait;
+            }
+            
+            return selectedTraits;
         }
         
         /// <summary>
