@@ -246,7 +246,15 @@ namespace TowerFusion
             
             if (pathPoints != null && pathPoints.Length > 0)
             {
-                transform.position = MapManager.Instance.GetEnemySpawnPoint();
+                Vector3 spawnPoint = MapManager.Instance.GetEnemySpawnPoint();
+                
+                // Snap spawn point to grid if GridManager exists
+                if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+                {
+                    spawnPoint = GridManager.Instance.SnapToGrid(spawnPoint);
+                }
+                
+                transform.position = spawnPoint;
                 targetPosition = pathPoints[0];
                 
                 // Immediately set initial direction towards first waypoint
@@ -481,14 +489,67 @@ namespace TowerFusion
                 return;
             
             Vector3 previousPosition = transform.position;
-            Vector3 direction = (tower.Position - transform.position).normalized;
-            float currentSpeed = enemyData.moveSpeed * speedMultiplier;
-            float moveDistance = currentSpeed * Time.deltaTime;
             
-            transform.position += direction * moveDistance;
+            // Use grid-aligned movement if GridManager is available
+            if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+            {
+                MoveTowardsPositionGridAligned(tower.Position);
+            }
+            else
+            {
+                // Fallback to direct movement
+                Vector3 direction = (tower.Position - transform.position).normalized;
+                float currentSpeed = enemyData.moveSpeed * speedMultiplier;
+                float moveDistance = currentSpeed * Time.deltaTime;
+                transform.position += direction * moveDistance;
+            }
             
             // Update sprite direction based on movement
             UpdateMovementDirection(previousPosition);
+        }
+        
+        /// <summary>
+        /// Move towards position using grid-aligned movement (horizontal/vertical only)
+        /// </summary>
+        private void MoveTowardsPositionGridAligned(Vector3 targetPos)
+        {
+            Vector3 currentPos = transform.position;
+            GridManager grid = GridManager.Instance;
+            
+            // Get current and target grid positions
+            Vector2Int currentGrid = grid.WorldToGrid(currentPos);
+            Vector2Int targetGrid = grid.WorldToGrid(targetPos);
+            
+            // If we're at the target grid cell, we're done
+            if (currentGrid == targetGrid)
+            {
+                return;
+            }
+            
+            // Calculate grid delta
+            Vector2Int gridDelta = targetGrid - currentGrid;
+            
+            // Determine next move direction (Manhattan distance - horizontal first, then vertical)
+            Vector2Int nextGrid = currentGrid;
+            
+            if (gridDelta.x != 0)
+            {
+                // Move horizontally first
+                nextGrid.x += gridDelta.x > 0 ? 1 : -1;
+            }
+            else if (gridDelta.y != 0)
+            {
+                // Then move vertically
+                nextGrid.y += gridDelta.y > 0 ? 1 : -1;
+            }
+            
+            // Get world position of next grid cell
+            Vector3 nextGridCenter = grid.GridToWorld(nextGrid);
+            
+            // Move towards next grid center
+            float currentSpeed = enemyData.moveSpeed * speedMultiplier;
+            float moveDistance = currentSpeed * Time.deltaTime;
+            transform.position = Vector3.MoveTowards(currentPos, nextGridCenter, moveDistance);
         }
         
         /// <summary>
@@ -823,15 +884,25 @@ namespace TowerFusion
             }
             
             Vector3 cornPosition = CornManager.Instance.GetCornStoragePosition();
-            Vector3 direction = (cornPosition - transform.position).normalized;
+            Vector3 previousPosition = transform.position;
             
-            // Move towards corn
-            transform.position += direction * CurrentSpeed * Time.deltaTime;
+            // Use grid-aligned movement if GridManager is available
+            if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+            {
+                MoveTowardsPositionGridAligned(cornPosition);
+            }
+            else
+            {
+                // Fallback to direct movement
+                Vector3 direction = (cornPosition - transform.position).normalized;
+                transform.position += direction * CurrentSpeed * Time.deltaTime;
+            }
             
             // Update sprite direction
-            if (direction.magnitude > 0.1f)
+            Vector3 moveDirection = transform.position - previousPosition;
+            if (moveDirection.magnitude > 0.01f)
             {
-                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg;
                 angle = -angle; // Flip Y axis for Unity's coordinate system
                 currentMovementAngle = angle;
                 UpdateDirectionalSprite(currentMovementAngle);
@@ -904,21 +975,8 @@ namespace TowerFusion
         /// </summary>
         private void ReturnToSpawn()
         {
-            Vector3 direction = (spawnPoint - transform.position).normalized;
-            
-            // Move towards spawn
-            transform.position += direction * CurrentSpeed * Time.deltaTime;
-            
-            // Update sprite direction
-            if (direction.magnitude > 0.1f)
-            {
-                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-                angle = -angle; // Flip Y axis
-                currentMovementAngle = angle;
-                UpdateDirectionalSprite(currentMovementAngle);
-            }
-            
-            lastPosition = transform.position;
+            // Use grid-aligned movement to return to spawn
+            MoveTowardsPositionGridAligned(spawnPoint);
             
             // Check if reached spawn
             float distanceToSpawn = Vector3.Distance(transform.position, spawnPoint);

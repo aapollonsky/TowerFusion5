@@ -79,6 +79,7 @@
     <Compile Include="Assets/Scripts/Enemy/EnemyTargetDistributor.cs" />
     <Compile Include="Assets/Scripts/Map/MapData.cs" />
     <Compile Include="Assets/Scripts/Wave/WaveGenerator.cs" />
+    <Compile Include="Assets/Scripts/Map/GridManager.cs" />
     <Compile Include="Assets/Scripts/UI/MapLaunchBridge.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerTraitManager.cs" />
     <Compile Include="Assets/Scripts/Effects/AutoDestroyParticleSystem.cs" />
@@ -89,6 +90,7 @@
     <Compile Include="Assets/Scripts/Utilities/Billboard.cs" />
     <Compile Include="Assets/Scripts/Effects/EarthTrap.cs" />
     <Compile Include="Assets/Scripts/Map/MapManager.cs" />
+    <Compile Include="Assets/Scripts/Map/GridVisualizer.cs" />
     <Compile Include="Assets/Scripts/Test/LightningTraitTest.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerManager.cs" />
     <Compile Include="Assets/Scripts/UI/MapSelectionUI.cs" />

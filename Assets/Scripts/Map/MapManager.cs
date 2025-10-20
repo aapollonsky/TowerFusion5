@@ -19,6 +19,10 @@ namespace TowerFusion
         [Header("Wave Generation")]
         [SerializeField] private WaveGenerator waveGenerator;
         
+        [Header("Grid System")]
+        [SerializeField] private GridManager gridManager;
+        [SerializeField] private GridVisualizer gridVisualizer;
+        
         // Singleton instance
         public static MapManager Instance { get; private set; }
         
@@ -82,6 +86,7 @@ namespace TowerFusion
 
             SetupPath();
             SetupTowerPositions();
+            InitializeGridSystem();
             
             Debug.Log($"Map '{currentMap.mapName}' initialized successfully.");
         }
@@ -296,6 +301,45 @@ namespace TowerFusion
             
             // Otherwise use map's predefined wave count
             return currentMap?.waves.Count ?? 0;
+        }
+        
+        /// <summary>
+        /// Initialize grid system based on current map
+        /// </summary>
+        private void InitializeGridSystem()
+        {
+            // Set the map sprite reference in GridManager and reinitialize
+            if (mapSpriteRenderer != null)
+            {
+                if (gridManager != null)
+                {
+                    gridManager.SetMapSprite(mapSpriteRenderer);
+                }
+                else if (GridManager.Instance != null)
+                {
+                    GridManager.Instance.SetMapSprite(mapSpriteRenderer);
+                }
+                else
+                {
+                    Debug.LogWarning("MapManager: No GridManager found to initialize grid system");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("MapManager: No map sprite renderer assigned, grid may not match map size");
+            }
+            
+            // Refresh grid visualization after grid is reinitialized
+            if (gridVisualizer != null)
+            {
+                gridVisualizer.RefreshGrid();
+            }
+            else if (FindObjectOfType<GridVisualizer>() != null)
+            {
+                FindObjectOfType<GridVisualizer>().RefreshGrid();
+            }
+            
+            Debug.Log("Grid system initialized with map sprite");
         }
     }
 }

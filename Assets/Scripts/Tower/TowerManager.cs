@@ -303,17 +303,24 @@ namespace TowerFusion
         /// </summary>
         private Vector3 GetValidPlacementPosition(Vector3 rawPosition)
         {
+            // First, snap to grid if GridManager exists
+            if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+            {
+                return GridManager.Instance.SnapToGrid(rawPosition);
+            }
+            
+            // Fallback to MapManager's tower positions if available
             if (MapManager.Instance != null)
             {
                 return MapManager.Instance.GetClosestTowerPosition(rawPosition);
             }
             
-            // Fallback: snap to grid
-            float gridSize = 1f;
+            // Last resort: snap to simple grid
+            float gridSize = 0.5f;
             float snappedX = Mathf.Round(rawPosition.x / gridSize) * gridSize;
-            float snappedZ = Mathf.Round(rawPosition.z / gridSize) * gridSize;
+            float snappedY = Mathf.Round(rawPosition.y / gridSize) * gridSize;
             
-            return new Vector3(snappedX, rawPosition.y, snappedZ);
+            return new Vector3(snappedX, snappedY, 0f);
         }
         
         /// <summary>
