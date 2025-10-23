@@ -17,6 +17,9 @@ namespace TowerFusion
         // Track which enemies are assigned to which towers
         private Dictionary<Tower, List<Enemy>> towerAssignments = new Dictionary<Tower, List<Enemy>>();
         
+        // Track total number of enemies ever assigned to each tower (prevents refilling when enemies die)
+        private Dictionary<Tower, int> totalAssignedCount = new Dictionary<Tower, int>();
+        
         private void Awake()
         {
             if (Instance == null)
@@ -36,6 +39,12 @@ namespace TowerFusion
             {
                 TowerManager.Instance.OnTowerRegistered += OnTowerRegistered;
             }
+            
+            // Subscribe to wave events
+            if (WaveManager.Instance != null)
+            {
+                WaveManager.Instance.OnWaveStarted += OnWaveStarted;
+            }
         }
         
         private void OnDestroy()
@@ -44,6 +53,11 @@ namespace TowerFusion
             if (TowerManager.Instance != null)
             {
                 TowerManager.Instance.OnTowerRegistered -= OnTowerRegistered;
+            }
+            
+            if (WaveManager.Instance != null)
+            {
+                WaveManager.Instance.OnWaveStarted -= OnWaveStarted;
             }
         }
         
@@ -56,10 +70,11 @@ namespace TowerFusion
             tower.OnTowerFired += OnTowerFired;
             tower.OnTowerDestroyed += OnTowerDestroyed;
             
-            // Initialize empty assignment list
+            // Initialize empty assignment list and counters
             if (!towerAssignments.ContainsKey(tower))
             {
                 towerAssignments[tower] = new List<Enemy>();
+                totalAssignedCount[tower] = 0;
             }
             
             Debug.Log($"TowerDefenseCoordinator: Registered tower {tower.TowerData.towerName}");
@@ -74,13 +89,39 @@ namespace TowerFusion
             tower.OnTowerFired -= OnTowerFired;
             tower.OnTowerDestroyed -= OnTowerDestroyed;
             
-            // Remove assignments
+            // Remove assignments and counters
             if (towerAssignments.ContainsKey(tower))
             {
                 towerAssignments.Remove(tower);
             }
+            if (totalAssignedCount.ContainsKey(tower))
+            {
+                totalAssignedCount.Remove(tower);
+            }
             
             Debug.Log($"TowerDefenseCoordinator: Unregistered tower {tower.TowerData.towerName}");
+        }
+        
+        /// <summary>
+        /// Called when a new wave starts - reset all assignment counters
+        /// </summary>
+        private void OnWaveStarted(int waveNumber)
+        {
+            Debug.Log($"TowerDefenseCoordinator: New wave {waveNumber} started - resetting all tower assignment counters");
+            
+            // Clear all assignments
+            foreach (var tower in towerAssignments.Keys)
+            {
+                towerAssignments[tower].Clear();
+            }
+            
+            // Reset all assignment counters
+            foreach (var tower in totalAssignedCount.Keys.ToList())
+            {
+                totalAssignedCount[tower] = 0;
+            }
+            
+            Debug.Log($"TowerDefenseCoordinator: All towers can now receive up to {MAX_COUNTERATTACKERS_PER_TOWER} new counterattackers this wave");
         }
         
         /// <summary>
@@ -90,28 +131,38 @@ namespace TowerFusion
         {
             Debug.Log($"TowerDefenseCoordinator: {tower.TowerData.towerName} fired at {targetEnemy.EnemyData.enemyName}!");
             
-            // Find eligible enemies to counterattack
-            List<Enemy> eligible = FindEligibleCounterattackers(tower);
-            
             // Get current assignments for this tower
             if (!towerAssignments.ContainsKey(tower))
             {
                 towerAssignments[tower] = new List<Enemy>();
+                totalAssignedCount[tower] = 0;
+            }
+            
+            // Check total assigned count (doesn't decrease when enemies die)
+            int totalAssigned = totalAssignedCount[tower];
+            
+            if (totalAssigned >= MAX_COUNTERATTACKERS_PER_TOWER)
+            {
+                Debug.Log($"TowerDefenseCoordinator: {tower.TowerData.towerName} has already had {totalAssigned} enemies assigned (max {MAX_COUNTERATTACKERS_PER_TOWER}). No replacements.");
+                return;
+            }
+            
+            // Calculate how many more enemies we can assign based on lifetime total
+            int slotsAvailable = MAX_COUNTERATTACKERS_PER_TOWER - totalAssigned;
+            
+            // Find eligible enemies to counterattack
+            List<Enemy> eligible = FindEligibleCounterattackers(tower);
+            
+            if (eligible.Count == 0)
+            {
+                Debug.Log($"TowerDefenseCoordinator: No eligible enemies available to counterattack {tower.TowerData.towerName}");
+                return;
             }
             
             List<Enemy> currentAssignments = towerAssignments[tower];
             
-            // Clean up dead/invalid enemies from assignments
+            // Clean up dead/invalid enemies from current assignments list (for tracking purposes)
             currentAssignments.RemoveAll(e => e == null || !e.IsAlive);
-            
-            // Calculate how many more enemies we can assign
-            int slotsAvailable = MAX_COUNTERATTACKERS_PER_TOWER - currentAssignments.Count;
-            
-            if (slotsAvailable <= 0)
-            {
-                Debug.Log($"TowerDefenseCoordinator: {tower.TowerData.towerName} already has max counterattackers ({MAX_COUNTERATTACKERS_PER_TOWER})");
-                return;
-            }
             
             // Assign up to 'slotsAvailable' enemies
             int assigned = 0;
@@ -123,14 +174,10 @@ namespace TowerFusion
                 // Assign enemy to counterattack
                 enemy.AssignCounterattack(tower);
                 currentAssignments.Add(enemy);
+                totalAssignedCount[tower]++; // Increment lifetime total
                 assigned++;
                 
-                Debug.Log($"TowerDefenseCoordinator: Assigned {enemy.EnemyData.enemyName} to counterattack {tower.TowerData.towerName} ({currentAssignments.Count}/{MAX_COUNTERATTACKERS_PER_TOWER})");
-            }
-            
-            if (assigned == 0)
-            {
-                Debug.Log($"TowerDefenseCoordinator: No eligible enemies available to counterattack {tower.TowerData.towerName}");
+                Debug.Log($"TowerDefenseCoordinator: Assigned {enemy.EnemyData.enemyName} to counterattack {tower.TowerData.towerName} (total assigned: {totalAssignedCount[tower]}/{MAX_COUNTERATTACKERS_PER_TOWER})");
             }
         }
         
@@ -212,9 +259,19 @@ namespace TowerFusion
         {
             foreach (var kvp in towerAssignments)
             {
-                if (kvp.Value.Remove(enemy))
+                Tower tower = kvp.Key;
+                List<Enemy> assignments = kvp.Value;
+                
+                if (assignments.Remove(enemy))
                 {
-                    Debug.Log($"TowerDefenseCoordinator: Unassigned {enemy.EnemyData.enemyName} from {kvp.Key.TowerData.towerName}");
+                    Debug.Log($"TowerDefenseCoordinator: Unassigned {enemy.EnemyData.enemyName} from {tower.TowerData.towerName}");
+                    
+                    // Clean up dead enemies from the list
+                    assignments.RemoveAll(e => e == null || !e.IsAlive);
+                    
+                    // NOTE: Do NOT reset totalAssignedCount here!
+                    // Each tower gets up to 2 enemies assigned PER WAVE, not per engagement.
+                    // Counter only resets when a new wave starts.
                 }
             }
         }

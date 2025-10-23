@@ -168,6 +168,12 @@ namespace TowerFusion
             if (behaviorState != EnemyBehaviorState.CounterattackingTower)
                 return;
             
+            // Unassign from reactive defense coordinator
+            if (TowerDefenseCoordinator.Instance != null)
+            {
+                TowerDefenseCoordinator.Instance.UnassignEnemy(this);
+            }
+            
             currentTowerTarget = null;
             behaviorState = EnemyBehaviorState.MovingToCorn;
             Debug.Log($"{name} tower destroyed, resuming stealing behavior");
@@ -772,10 +778,16 @@ namespace TowerFusion
                 DropCorn();
             }
             
-            // Unassign from tower distributor
+            // Unassign from tower distributor (legacy system)
             if (EnemyTargetDistributor.Instance != null)
             {
                 EnemyTargetDistributor.Instance.UnassignEnemy(this);
+            }
+            
+            // Unassign from reactive defense coordinator
+            if (TowerDefenseCoordinator.Instance != null)
+            {
+                TowerDefenseCoordinator.Instance.UnassignEnemy(this);
             }
             
             // Give gold reward

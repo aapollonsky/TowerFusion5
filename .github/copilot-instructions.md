@@ -7,10 +7,10 @@ TowerFusion5 is a Unity 2D tower defense game where:
 - **Win Condition:** Defeat all waves while keeping at least 1 corn in storage
 - **Loss Condition:** All corn successfully stolen and returned to enemy spawn
 - Players place towers to defend against enemy waves
-- **85% of enemies** attack towers (Attackers) to clear the path
-- **15% of enemies** steal corn (Stealers) and return it to spawn
-- Each attacker attacks ONE tower at a time, with intelligent distribution
-- Maximum 3 towers can be under attack simultaneously per wave
+- **ALL enemies are stealers** - they move to corn storage, grab corn, and return to spawn
+- **Reactive Defense:** When a tower fires, up to 2 corn-less enemies assigned to counterattack it
+- **Assignment Limit:** Each tower gets maximum 2 counterattackers PER WAVE (no replacements when enemies die)
+- Counters reset when a new wave starts
 
 ## Architecture Patterns
 
@@ -25,14 +25,18 @@ TowerFusion5 is a Unity 2D tower defense game where:
 - `EnemyTargetDistributor` - Coordinates target selection across attackers
 - `CornManager` - Manages corn theft mechanics and win/loss conditions
 
-### Enemy Roles
-- **Attacker (85%):** Attack towers, use target distribution, standard behavior
-- **Stealer (15%):** Bypass towers, steal corn, return to spawn
+### Reactive Defense System
+- **All Enemies:** Start as stealers, move toward corn storage
+- **Counterattack Trigger:** When tower fires, up to 2 corn-less enemies assigned to attack it
+- **Per-Wave Limit:** Each tower gets maximum 2 counterattackers per wave (no replacements)
+- **State Transition:** Assigned enemies switch from stealing to counterattacking tower
 
 ### State Machine
-**Attacker States:** `SeekingTower` → `AttackingTower` → `MovingToEnd`
-**Stealer States:** `MovingToCorn` → `GrabbingCorn` → `ReturningWithCorn`
-- Stealers drop corn if killed, corn returns to storage automatically
+**Enemy States:** `MovingToCorn` → `GrabbingCorn` → `WaitingForCorn` → `ReturningWithCorn` / `ReturningEmpty` / `CounterattackingTower`
+- All enemies start stealing corn
+- Tower fires → eligible enemies switch to `CounterattackingTower` state
+- Enemies drop corn if killed, corn returns to storage automatically
+- Max 2 enemies counterattack each tower per wave
 
 ## Coding Standards
 
