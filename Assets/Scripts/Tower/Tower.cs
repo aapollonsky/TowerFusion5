@@ -52,6 +52,7 @@ namespace TowerFusion
         public System.Action<Tower, Enemy> OnTowerAttack;
         public System.Action<Tower> OnTowerUpgraded;
         public System.Action<Tower> OnTowerDestroyed;
+        public System.Action<Tower, Enemy> OnTowerFired; // NEW: Reactive defense system
         
         // Properties
         public TowerData TowerData => towerData;
@@ -787,8 +788,8 @@ namespace TowerFusion
             if (target == null)
                 return;
             
-            // Rotate towards target
-            //RotateTowardsTarget(target);
+            // Notify reactive defense system BEFORE dealing damage
+            OnTowerFired?.Invoke(this, target);
             
             if (towerData.isHitscan)
             {

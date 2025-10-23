@@ -39,19 +39,28 @@ namespace TowerFusion
         private Vector3 lastPosition;
         private float currentMovementAngle;
         
-        // Enemy role and corn stealing
-        private EnemyRole assignedRole = EnemyRole.Attacker;
+        // Enemy corn stealing
         private bool hasCorn = false;
         private GameObject cornVisual;
         private Vector3 spawnPoint;
         private float cornGrabTimer = 0f;
+        private float cornWaitTimer = 0f;
         
-        // Tower attacking
+        // Tower counterattacking (reactive defense)
         private Tower currentTowerTarget;
         private float lastTowerAttackTime;
-        private bool isAttackingTower = false;
-        private enum EnemyBehaviorState { SeekingTower, AttackingTower, MovingToCorn, GrabbingCorn, ReturningWithCorn }
-        private EnemyBehaviorState behaviorState = EnemyBehaviorState.SeekingTower;
+        
+        // Behavior state machine
+        private enum EnemyBehaviorState 
+        { 
+            MovingToCorn, 
+            GrabbingCorn, 
+            WaitingForCorn,
+            ReturningWithCorn, 
+            ReturningEmpty,
+            CounterattackingTower 
+        }
+        private EnemyBehaviorState behaviorState = EnemyBehaviorState.MovingToCorn;
         
         // Sprite animation
         private float animationTimer = 0f;
@@ -72,7 +81,6 @@ namespace TowerFusion
         public bool IsSlowed => isSlowed;
         public bool IsBrittle => isBrittle;
         public bool IsBurning => isBurning;
-        public EnemyRole Role => assignedRole;
         public bool HasCorn => hasCorn;
         
         private void Awake()
@@ -111,11 +119,12 @@ namespace TowerFusion
             currentPathIndex = 0;
             hasCorn = false;
             
-            // Set default role from data
-            assignedRole = enemyData.defaultRole;
-            
             // Store spawn point for return journey
             spawnPoint = transform.position;
+            
+            // All enemies start as stealers (moving to corn)
+            behaviorState = EnemyBehaviorState.MovingToCorn;
+            Debug.Log($"{name} initialized as STEALER - heading to corn storage");
             
             // Store original color for status effect restoration
             if (spriteRenderer != null && !originalColorStored)
@@ -128,18 +137,6 @@ namespace TowerFusion
             SetupVisuals();
             SetupMovement();
             
-            // Determine initial behavior based on role
-            if (assignedRole == EnemyRole.Stealer)
-            {
-                behaviorState = EnemyBehaviorState.MovingToCorn;
-                Debug.Log($"{name} assigned as STEALER - heading to corn storage");
-            }
-            else
-            {
-                behaviorState = EnemyBehaviorState.SeekingTower;
-                Debug.Log($"{name} assigned as ATTACKER - seeking towers");
-            }
-            
             if (enemyData.isRegenerating && enemyData.regenerationRate > 0)
             {
                 StartCoroutine(RegenerateHealth());
@@ -147,58 +144,32 @@ namespace TowerFusion
         }
         
         /// <summary>
-        /// Set the enemy's role (called by WaveManager for dynamic assignment)
+        /// Assign this enemy to counterattack a tower (called by TowerDefenseCoordinator)
         /// </summary>
-        public void SetRole(EnemyRole role)
+        public void AssignCounterattack(Tower tower)
         {
-            assignedRole = role;
+            if (hasCorn) 
+            {
+                Debug.LogWarning($"{name} cannot counterattack while carrying corn!");
+                return; // Can't counterattack with corn
+            }
             
-            // Update behavior state based on role
-            if (assignedRole == EnemyRole.Stealer)
-            {
-                behaviorState = EnemyBehaviorState.MovingToCorn;
-                Debug.Log($"{name} role set to STEALER");
-            }
-            else
-            {
-                behaviorState = EnemyBehaviorState.SeekingTower;
-                Debug.Log($"{name} role set to ATTACKER");
-            }
+            currentTowerTarget = tower;
+            behaviorState = EnemyBehaviorState.CounterattackingTower;
+            Debug.Log($"{name} assigned to counterattack {tower.TowerData.towerName}!");
         }
         
         /// <summary>
-        /// Convert this attacker into a stealer (called when tower is destroyed)
+        /// Cancel counterattack and resume stealing (called when tower is destroyed)
         /// </summary>
-        private void ConvertToStealer()
+        private void CancelCounterattack()
         {
-            // Only convert if currently an attacker and corn theft is enabled
-            if (assignedRole != EnemyRole.Attacker)
+            if (behaviorState != EnemyBehaviorState.CounterattackingTower)
                 return;
             
-            // Check if corn system is available
-            if (CornManager.Instance == null || CornManager.Instance.RemainingCorn <= 0)
-            {
-                // No corn available, die gracefully
-                Debug.Log($"{name} tower destroyed but no corn available, dying");
-                Die();
-                return;
-            }
-            
-            // Convert to stealer
-            assignedRole = EnemyRole.Stealer;
-            behaviorState = EnemyBehaviorState.MovingToCorn;
-            
-            // Clean up tower targeting
             currentTowerTarget = null;
-            isAttackingTower = false;
-            
-            // Unassign from distributor if registered
-            if (EnemyTargetDistributor.Instance != null)
-            {
-                EnemyTargetDistributor.Instance.UnassignEnemy(this);
-            }
-            
-            Debug.Log($"{name} converted to STEALER after tower destruction!");
+            behaviorState = EnemyBehaviorState.MovingToCorn;
+            Debug.Log($"{name} tower destroyed, resuming stealing behavior");
         }
         
         /// <summary>
@@ -274,34 +245,32 @@ namespace TowerFusion
             if (!isAlive || hasReachedEnd)
                 return;
             
-            // Update behavior based on role and state
+            // Update behavior based on state
             switch (behaviorState)
             {
                 case EnemyBehaviorState.MovingToCorn:
                     MoveTowardsCornStorage();
+                    CheckIfReachedCornStorage();
                     break;
                     
                 case EnemyBehaviorState.GrabbingCorn:
                     GrabCorn();
                     break;
                     
+                case EnemyBehaviorState.WaitingForCorn:
+                    WaitForCorn();
+                    break;
+                    
                 case EnemyBehaviorState.ReturningWithCorn:
                     ReturnToSpawn();
                     break;
                     
-                case EnemyBehaviorState.SeekingTower:
-                case EnemyBehaviorState.AttackingTower:
-                    // Attacker behavior
-                    if (enemyData.canAttackTowers)
-                    {
-                        UpdateTowerTargeting();
-                        HandleTowerBehavior();
-                    }
-                    else
-                    {
-                        // If can't attack towers and not a stealer, convert to stealer
-                        ConvertToStealer();
-                    }
+                case EnemyBehaviorState.ReturningEmpty:
+                    ReturnToSpawnEmpty();
+                    break;
+                    
+                case EnemyBehaviorState.CounterattackingTower:
+                    CounterattackTower();
                     break;
             }
             
@@ -312,201 +281,166 @@ namespace TowerFusion
             }
         }
         
+        #region New Behavior States
+        
         /// <summary>
-        /// Update tower targeting for enemies that attack towers
+        /// Check if enemy has reached corn storage
         /// </summary>
-        private void UpdateTowerTargeting()
+        private void CheckIfReachedCornStorage()
         {
-            // Check if current tower target is still valid
-            if (currentTowerTarget != null && (!currentTowerTarget.IsAlive || currentTowerTarget == null))
-            {
-                // Unassign from distributor
-                if (EnemyTargetDistributor.Instance != null)
-                {
-                    EnemyTargetDistributor.Instance.UnassignEnemy(this);
-                }
-                
-                currentTowerTarget = null;
-                isAttackingTower = false;
-                
-                // Convert to stealer when tower is destroyed
-                ConvertToStealer();
-                return; // Don't look for another tower
-            }
+            if (CornManager.Instance == null)
+                return;
             
-            // If we don't have a target, look for towers (including while moving to end)
-            // Note: ConvertToStealer sets state, so this won't run if converted
-            if (behaviorState != EnemyBehaviorState.MovingToCorn && 
-                behaviorState != EnemyBehaviorState.GrabbingCorn &&
-                behaviorState != EnemyBehaviorState.ReturningWithCorn &&
-                currentTowerTarget == null)
+            if (CornManager.Instance.IsInGrabRange(transform.position))
             {
-                FindDistributedTower();
-                
-                if (currentTowerTarget != null)
+                // Check if corn still available
+                if (CornManager.Instance.Storage.HasCorn)
                 {
-                    behaviorState = EnemyBehaviorState.SeekingTower;
-                    
-                    // Register with distributor
-                    if (EnemyTargetDistributor.Instance != null)
-                    {
-                        EnemyTargetDistributor.Instance.AssignEnemyToTower(this, currentTowerTarget);
-                    }
+                    behaviorState = EnemyBehaviorState.GrabbingCorn;
+                    cornGrabTimer = 0f;
+                    Debug.Log($"{name} reached corn storage, starting grab");
                 }
                 else
                 {
-                    // No towers found, convert to stealer
-                    Debug.Log($"{name} found no towers, converting to stealer");
-                    ConvertToStealer();
+                    // No corn available, wait
+                    behaviorState = EnemyBehaviorState.WaitingForCorn;
+                    cornWaitTimer = 0f;
+                    Debug.Log($"{name} reached empty corn storage, waiting");
                 }
             }
         }
         
         /// <summary>
-        /// Handle behavior based on current state
+        /// Wait at corn storage for corn to become available
         /// </summary>
-        private void HandleTowerBehavior()
+        private void WaitForCorn()
         {
-            switch (behaviorState)
-            {
-                case EnemyBehaviorState.SeekingTower:
-                    if (currentTowerTarget != null)
-                    {
-                        MoveTowardsTower(currentTowerTarget);
-                        
-                        // Check if in attack range
-                        float distanceToTower = Vector3.Distance(transform.position, currentTowerTarget.Position);
-                        if (distanceToTower <= enemyData.towerAttackRange)
-                        {
-                            behaviorState = EnemyBehaviorState.AttackingTower;
-                            isAttackingTower = true;
-                        }
-                    }
-                    else
-                    {
-                        // Lost tower target, look for another or convert to stealer
-                        currentTowerTarget = null;
-                    }
-                    break;
-                    
-                case EnemyBehaviorState.AttackingTower:
-                    if (currentTowerTarget != null && currentTowerTarget.IsAlive)
-                    {
-                        // Face the tower while attacking
-                        Vector3 directionToTower = (currentTowerTarget.Position - transform.position).normalized;
-                        if (directionToTower.magnitude > 0.1f)
-                        {
-                            float angle = Mathf.Atan2(directionToTower.y, directionToTower.x) * Mathf.Rad2Deg;
-                            angle = -angle; // Flip Y axis
-                            currentMovementAngle = angle;
-                            UpdateDirectionalSprite(currentMovementAngle);
-                        }
-                        
-                        TryAttackTower();
-                        
-                        // Check if still in range
-                        float distanceToTower = Vector3.Distance(transform.position, currentTowerTarget.Position);
-                        if (distanceToTower > enemyData.towerAttackRange)
-                        {
-                            behaviorState = EnemyBehaviorState.SeekingTower;
-                            isAttackingTower = false;
-                        }
-                    }
-                    else
-                    {
-                        // Tower destroyed or invalid
-                        currentTowerTarget = null;
-                        isAttackingTower = false;
-                        
-                        // Convert to stealer instead of seeking another tower
-                        ConvertToStealer();
-                    }
-                    break;
-            }
-        }
-        
-        /// <summary>
-        /// Find tower using distribution system to spread enemies across different towers
-        /// </summary>
-        private void FindDistributedTower()
-        {
-            if (EnemyTargetDistributor.Instance != null)
-            {
-                // Use distributor to get best tower assignment
-                currentTowerTarget = EnemyTargetDistributor.Instance.SelectTargetForEnemy(
-                    this, 
-                    transform.position, 
-                    enemyData.towerDetectionRange
-                );
-            }
-            else
-            {
-                // Fallback to nearest tower if no distributor
-                FindNearestTowerFallback();
-            }
-        }
-        
-        /// <summary>
-        /// Fallback method to find nearest tower when distributor is unavailable
-        /// </summary>
-        private void FindNearestTowerFallback()
-        {
-            if (TowerManager.Instance == null)
-                return;
+            cornWaitTimer += Time.deltaTime;
             
-            var towers = TowerManager.Instance.GetActiveTowers();
-            if (towers == null || towers.Count == 0)
+            // Face the corn storage while waiting
+            if (CornManager.Instance != null)
             {
-                currentTowerTarget = null;
-                return;
-            }
-            
-            Tower nearest = null;
-            float nearestDistance = float.MaxValue;
-            
-            foreach (var tower in towers)
-            {
-                if (tower == null || !tower.IsAlive)
-                    continue;
+                Vector3 cornPosition = CornManager.Instance.GetCornStoragePosition();
+                Vector3 directionToCorn = (cornPosition - transform.position).normalized;
                 
-                float distance = Vector3.Distance(transform.position, tower.Position);
-                if (distance <= enemyData.towerDetectionRange && distance < nearestDistance)
+                if (directionToCorn.magnitude > 0.1f)
                 {
-                    nearest = tower;
-                    nearestDistance = distance;
+                    float angle = Mathf.Atan2(directionToCorn.y, directionToCorn.x) * Mathf.Rad2Deg;
+                    angle = -angle;
+                    currentMovementAngle = angle;
+                    UpdateDirectionalSprite(currentMovementAngle);
                 }
             }
             
-            currentTowerTarget = nearest;
+            // Check if corn became available
+            if (CornManager.Instance != null && CornManager.Instance.Storage.HasCorn)
+            {
+                behaviorState = EnemyBehaviorState.GrabbingCorn;
+                cornGrabTimer = 0f;
+                Debug.Log($"{name} corn appeared, grabbing!");
+            }
+            // Check if wait time exceeded
+            else if (cornWaitTimer >= enemyData.cornGrabDuration)
+            {
+                // Give up and return empty
+                behaviorState = EnemyBehaviorState.ReturningEmpty;
+                Debug.Log($"{name} waited too long, returning empty");
+            }
         }
         
         /// <summary>
-        /// Move towards the targeted tower
+        /// Return to spawn without corn
         /// </summary>
-        private void MoveTowardsTower(Tower tower)
+        private void ReturnToSpawnEmpty()
         {
-            if (tower == null)
-                return;
+            // Use grid-aligned movement to return to spawn
+            Vector3 previousPosition = transform.position;
+            MoveTowardsPositionGridAligned(spawnPoint);
             
+            // Update sprite direction
+            Vector3 moveDirection = transform.position - previousPosition;
+            if (moveDirection.magnitude > 0.01f)
+            {
+                float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg;
+                angle = -angle;
+                currentMovementAngle = angle;
+                UpdateDirectionalSprite(currentMovementAngle);
+            }
+            
+            // Check if reached spawn
+            float distanceToSpawn = Vector3.Distance(transform.position, spawnPoint);
+            if (distanceToSpawn < 0.5f)
+            {
+                // Return empty, just despawn
+                Debug.Log($"{name} returned to spawn empty-handed");
+                hasReachedEnd = true;
+                OnEnemyReachedEnd?.Invoke(this);
+                EnemyManager.Instance?.OnEnemyReachedEnd(this);
+                Destroy(gameObject);
+            }
+        }
+        
+        /// <summary>
+        /// Counterattack assigned tower (reactive defense)
+        /// </summary>
+        private void CounterattackTower()
+        {
+            // Check if tower is still alive
+            if (currentTowerTarget == null || !currentTowerTarget.IsAlive)
+            {
+                // Tower destroyed, resume stealing
+                CancelCounterattack();
+                return;
+            }
+            
+            // Move towards tower
             Vector3 previousPosition = transform.position;
             
-            // Use grid-aligned movement if GridManager is available
             if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
             {
-                MoveTowardsPositionGridAligned(tower.Position);
+                MoveTowardsPositionGridAligned(currentTowerTarget.Position);
             }
             else
             {
-                // Fallback to direct movement
-                Vector3 direction = (tower.Position - transform.position).normalized;
-                float currentSpeed = enemyData.moveSpeed * speedMultiplier;
-                float moveDistance = currentSpeed * Time.deltaTime;
-                transform.position += direction * moveDistance;
+                Vector3 direction = (currentTowerTarget.Position - transform.position).normalized;
+                transform.position += direction * CurrentSpeed * Time.deltaTime;
             }
             
-            // Update sprite direction based on movement
+            // Update sprite direction
             UpdateMovementDirection(previousPosition);
+            
+            // Check if in attack range
+            float distanceToTower = Vector3.Distance(transform.position, currentTowerTarget.Position);
+            if (distanceToTower <= enemyData.towerAttackRange)
+            {
+                // Attack the tower
+                float timeSinceLastAttack = Time.time - lastTowerAttackTime;
+                if (timeSinceLastAttack >= enemyData.towerAttackCooldown)
+                {
+                    currentTowerTarget.TakeDamage(enemyData.towerAttackDamage);
+                    lastTowerAttackTime = Time.time;
+                    Debug.Log($"{name} attacked {currentTowerTarget.TowerData.towerName} for {enemyData.towerAttackDamage} damage!");
+                    
+                    // Check if tower was destroyed
+                    if (!currentTowerTarget.IsAlive)
+                    {
+                        CancelCounterattack();
+                    }
+                }
+                
+                // Face the tower while attacking
+                Vector3 directionToTower = (currentTowerTarget.Position - transform.position).normalized;
+                if (directionToTower.magnitude > 0.1f)
+                {
+                    float angle = Mathf.Atan2(directionToTower.y, directionToTower.x) * Mathf.Rad2Deg;
+                    angle = -angle;
+                    currentMovementAngle = angle;
+                    UpdateDirectionalSprite(currentMovementAngle);
+                }
+            }
         }
+        
+        #endregion
         
         /// <summary>
         /// Move towards position using grid-aligned movement (horizontal/vertical only)
@@ -550,99 +484,6 @@ namespace TowerFusion
             float currentSpeed = enemyData.moveSpeed * speedMultiplier;
             float moveDistance = currentSpeed * Time.deltaTime;
             transform.position = Vector3.MoveTowards(currentPos, nextGridCenter, moveDistance);
-        }
-        
-        /// <summary>
-        /// Try to attack current tower target
-        /// </summary>
-        private void TryAttackTower()
-        {
-            if (currentTowerTarget == null || !currentTowerTarget.IsAlive)
-                return;
-            
-            float timeSinceLastAttack = Time.time - lastTowerAttackTime;
-            if (timeSinceLastAttack >= enemyData.towerAttackCooldown)
-            {
-                AttackTower(currentTowerTarget);
-                lastTowerAttackTime = Time.time;
-            }
-        }
-        
-        /// <summary>
-        /// Attack a specific tower
-        /// </summary>
-        private void AttackTower(Tower tower)
-        {
-            if (tower == null || !tower.IsAlive)
-                return;
-            
-            tower.TakeDamage(enemyData.towerAttackDamage);
-            Debug.Log($"{enemyData.enemyName} attacked {tower.TowerData.towerName} for {enemyData.towerAttackDamage} damage!");
-            
-            // Check if tower was destroyed
-            if (!tower.IsAlive)
-            {
-                // Unassign from distributor
-                if (EnemyTargetDistributor.Instance != null)
-                {
-                    EnemyTargetDistributor.Instance.UnassignEnemy(this);
-                }
-                
-                currentTowerTarget = null;
-                isAttackingTower = false;
-                
-                // Convert to stealer instead of seeking another tower
-                ConvertToStealer();
-            }
-        }
-        
-        /// <summary>
-        /// Move enemy along the path
-        /// [DEPRECATED] No longer used in corn theft mode - enemies now attack towers or steal corn instead.
-        /// </summary>
-        private void MoveAlongPath()
-        {
-            if (pathPoints == null || pathPoints.Length == 0)
-                return;
-            
-            // Store last position for direction calculation
-            Vector3 previousPosition = transform.position;
-            
-            // Move towards target
-            Vector3 direction = (targetPosition - transform.position).normalized;
-            float currentSpeed = enemyData.moveSpeed * speedMultiplier;
-            float moveDistance = currentSpeed * Time.deltaTime;
-            
-            transform.position += direction * moveDistance;
-            
-            // Update sprite direction based on movement
-            UpdateMovementDirection(previousPosition);
-            
-            // Check if reached current target
-            if (Vector3.Distance(transform.position, targetPosition) <= 0.1f)
-            {
-                currentPathIndex++;
-                
-                if (currentPathIndex >= pathPoints.Length)
-                {
-                    // Reached the end
-                    ReachEnd();
-                }
-                else
-                {
-                    targetPosition = pathPoints[currentPathIndex];
-                    
-                    // Immediately update sprite direction to face the new target
-                    Vector3 newDirection = (targetPosition - transform.position).normalized;
-                    if (newDirection.magnitude > 0.1f)
-                    {
-                        float newAngle = Mathf.Atan2(newDirection.y, newDirection.x) * Mathf.Rad2Deg;
-                        newAngle = -newAngle; // Flip Y axis
-                        currentMovementAngle = newAngle;
-                        UpdateDirectionalSprite(currentMovementAngle);
-                    }
-                }
-            }
         }
         
         /// <summary>
@@ -878,8 +719,9 @@ namespace TowerFusion
         {
             if (CornManager.Instance == null)
             {
-                // No corn manager, revert to normal behavior
-                behaviorState = EnemyBehaviorState.SeekingTower;
+                // No corn manager, just despawn
+                Debug.LogWarning($"{name} no corn manager available, despawning");
+                Die();
                 return;
             }
             
@@ -909,25 +751,6 @@ namespace TowerFusion
             }
             
             lastPosition = transform.position;
-            
-            // Check if reached corn storage
-            if (CornManager.Instance.IsInGrabRange(transform.position))
-            {
-                // Check if corn still available
-                if (CornManager.Instance.Storage.HasCorn)
-                {
-                    behaviorState = EnemyBehaviorState.GrabbingCorn;
-                    cornGrabTimer = 0f;
-                    Debug.Log($"{name} reached corn storage, starting grab");
-                }
-                else
-                {
-                    // No corn left, become attacker
-                    Debug.LogWarning($"{name} reached empty corn storage, switching to attacker");
-                    assignedRole = EnemyRole.Attacker;
-                    behaviorState = EnemyBehaviorState.SeekingTower;
-                }
-            }
         }
         
         /// <summary>

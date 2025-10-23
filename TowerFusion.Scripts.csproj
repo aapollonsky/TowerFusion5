@@ -82,6 +82,7 @@
     <Compile Include="Assets/Scripts/Map/GridManager.cs" />
     <Compile Include="Assets/Scripts/UI/MapLaunchBridge.cs" />
     <Compile Include="Assets/Scripts/Tower/TowerTraitManager.cs" />
+    <Compile Include="Assets/Scripts/Managers/TowerDefenseCoordinator.cs" />
     <Compile Include="Assets/Scripts/Effects/AutoDestroyParticleSystem.cs" />
     <Compile Include="Assets/Scripts/Wave/WaveData.cs" />
     <Compile Include="Assets/Scripts/Tower/Tower.cs" />

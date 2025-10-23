@@ -32,88 +32,13 @@ namespace TowerFusion
         
         /// <summary>
         /// Select best tower for an enemy to target, distributing load across towers
-        /// Only applies to Attacker enemies - Stealer enemies ignore this system
+        /// NOTE: This system is deprecated in reactive defense mode - enemies don't proactively attack towers
         /// </summary>
         public Tower SelectTargetForEnemy(Enemy enemy, Vector3 enemyPosition, float detectionRange)
         {
-            // Skip distribution for Stealer enemies (they go straight to corn)
-            if (enemy != null && enemy.Role == EnemyRole.Stealer)
-            {
-                return null;
-            }
-            
-            if (TowerManager.Instance == null)
-                return null;
-            
-            var towers = TowerManager.Instance.GetActiveTowers();
-            if (towers == null || towers.Count == 0)
-                return null;
-            
-            // Find towers within detection range
-            List<Tower> availableTowers = new List<Tower>();
-            foreach (var tower in towers)
-            {
-                if (tower == null || !tower.IsAlive)
-                    continue;
-                
-                float distance = Vector3.Distance(enemyPosition, tower.Position);
-                if (distance <= detectionRange)
-                {
-                    availableTowers.Add(tower);
-                }
-            }
-            
-            if (availableTowers.Count == 0)
-                return null;
-            
-            // Clean up assignments for destroyed towers and dead enemies
-            CleanupAssignments();
-            
-            // Get towers that are already under attack
-            var towersUnderAttack = towerAssignments.Keys.Where(t => t != null && t.IsAlive).ToList();
-            
-            // If we've reached the maximum number of towers under attack,
-            // only consider those towers (don't spread to new towers)
-            if (towersUnderAttack.Count >= maxSimultaneousTowers)
-            {
-                // Filter available towers to only those already under attack
-                availableTowers = availableTowers.Where(t => towersUnderAttack.Contains(t)).ToList();
-                
-                if (availableTowers.Count == 0)
-                {
-                    // All towers under attack are out of range, assign to closest attacked tower anyway
-                    return towersUnderAttack.OrderBy(t => Vector3.Distance(enemyPosition, t.Position)).FirstOrDefault();
-                }
-            }
-            
-            // If only one tower available, assign to it
-            if (availableTowers.Count == 1)
-            {
-                return availableTowers[0];
-            }
-            
-            // Find tower with least enemies assigned
-            Tower bestTower = null;
-            int minAssignments = int.MaxValue;
-            float closestDistance = float.MaxValue;
-            
-            foreach (var tower in availableTowers)
-            {
-                int assignmentCount = GetAssignmentCount(tower);
-                float distance = Vector3.Distance(enemyPosition, tower.Position);
-                
-                // Prefer towers with fewer assignments
-                // If tied, prefer closer tower
-                if (assignmentCount < minAssignments || 
-                    (assignmentCount == minAssignments && distance < closestDistance))
-                {
-                    bestTower = tower;
-                    minAssignments = assignmentCount;
-                    closestDistance = distance;
-                }
-            }
-            
-            return bestTower;
+            // EnemyTargetDistributor is no longer used in reactive defense system
+            // All enemies are stealers by default and only attack when towers fire at them
+            return null;
         }
         
         /// <summary>

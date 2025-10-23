@@ -175,9 +175,7 @@ namespace TowerFusion
         public bool isRegenerating = false;
         public float regenerationRate = 0f;
         
-        [Header("Enemy Role")]
-        [Tooltip("What is this enemy's primary objective?")]
-        public EnemyRole defaultRole = EnemyRole.Attacker;
+        [Header("Corn Stealing")]
         [Tooltip("Time to grab corn when reaching storage")]
         public float cornGrabDuration = 1f;
         [Tooltip("Speed multiplier when carrying corn (e.g., 0.8 = 20% slower)")]
@@ -232,14 +230,5 @@ namespace TowerFusion
         Magic,
         Fire,
         Ice
-    }
-    
-    /// <summary>
-    /// Defines the enemy's primary objective in the game
-    /// </summary>
-    public enum EnemyRole
-    {
-        Attacker,  // Attack towers to clear path (85% of enemies)
-        Stealer    // Steal corn and return to spawn (15% of enemies)
     }
 }

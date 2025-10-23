@@ -176,20 +176,8 @@ namespace TowerFusion
             
             if (enemy != null)
             {
-                // Assign role based on distribution (85% Attacker, 15% Stealer)
-                if (enableCornTheft && CornManager.Instance != null)
-                {
-                    float roll = Random.value;
-                    EnemyRole assignedRole = roll < stealerPercentage ? EnemyRole.Stealer : EnemyRole.Attacker;
-                    enemy.SetRole(assignedRole);
-                    
-                    Debug.Log($"Spawned {enemy.name} as {assignedRole} (roll: {roll:F2}, threshold: {stealerPercentage:F2})");
-                }
-                else
-                {
-                    // Corn theft disabled or no CornManager, all enemies are attackers
-                    enemy.SetRole(EnemyRole.Attacker);
-                }
+                // All enemies are now stealers (no role assignment needed)
+                Debug.Log($"Spawned {enemy.name} as stealer");
                 
                 // Parent to container
                 if (enemyContainer != null)

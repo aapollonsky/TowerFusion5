@@ -35,6 +35,7 @@ namespace TowerFusion
         public System.Action<Tower> OnTowerSelected;
         public System.Action<Tower> OnTowerUpgraded;
         public System.Action<Tower> OnTowerSold;
+        public System.Action<Tower> OnTowerRegistered; // NEW: For TowerDefenseCoordinator
         
         private void Awake()
         {
@@ -336,6 +337,9 @@ namespace TowerFusion
             // Subscribe to tower events
             tower.OnTowerUpgraded += OnTowerUpgradedHandler;
             tower.OnTowerDestroyed += OnTowerDestroyedHandler;
+            
+            // Notify listeners (e.g., TowerDefenseCoordinator)
+            OnTowerRegistered?.Invoke(tower);
         }
         
         /// <summary>
