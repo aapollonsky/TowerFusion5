@@ -239,5 +239,40 @@ namespace TowerFusion
         {
             return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
         }
+        
+        /// <summary>
+        /// Check if a grid cell is blocked by a tower
+        /// </summary>
+        public bool IsCellBlocked(Vector2Int gridPosition)
+        {
+            if (!IsValidGridPosition(gridPosition))
+                return true;
+            
+            // Convert grid position to world position
+            Vector3 worldPos = GridToWorld(gridPosition);
+            
+            // Check if any tower occupies this cell
+            if (TowerManager.Instance != null)
+            {
+                var towers = TowerManager.Instance.GetActiveTowers();
+                if (towers != null)
+                {
+                    foreach (var tower in towers)
+                    {
+                        if (tower == null || !tower.IsAlive)
+                            continue;
+                        
+                        // Check if tower is in this grid cell
+                        Vector2Int towerGridPos = WorldToGrid(tower.Position);
+                        if (towerGridPos == gridPosition)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
     }
 }

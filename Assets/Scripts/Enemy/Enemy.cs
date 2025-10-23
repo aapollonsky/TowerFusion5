@@ -354,9 +354,24 @@ namespace TowerFusion
         /// </summary>
         private void ReturnToSpawnEmpty()
         {
-            // Use grid-aligned movement to return to spawn
             Vector3 previousPosition = transform.position;
-            MoveTowardsPositionGridAligned(spawnPoint);
+            
+            // Use flow field if available
+            if (FlowFieldManager.Instance != null && FlowFieldManager.Instance.IsReady())
+            {
+                MoveUsingFlowField(FlowFieldManager.Instance.GetFlowToSpawn(transform.position));
+            }
+            else if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+            {
+                // Fallback to grid-aligned movement
+                MoveTowardsPositionGridAligned(spawnPoint);
+            }
+            else
+            {
+                // Fallback to direct movement
+                Vector3 direction = (spawnPoint - transform.position).normalized;
+                transform.position += direction * CurrentSpeed * Time.deltaTime;
+            }
             
             // Update sprite direction
             Vector3 moveDirection = transform.position - previousPosition;
@@ -368,15 +383,20 @@ namespace TowerFusion
                 UpdateDirectionalSprite(currentMovementAngle);
             }
             
-            // Check if reached spawn
+            lastPosition = transform.position;
+            
+            // Check if reached spawn (increased radius for grid-aligned movement)
             float distanceToSpawn = Vector3.Distance(transform.position, spawnPoint);
-            if (distanceToSpawn < 0.5f)
+            if (distanceToSpawn < 1.0f) // Increased from 0.5f for better detection
             {
                 // Return empty, just despawn
-                Debug.Log($"{name} returned to spawn empty-handed");
+                Debug.Log($"{name} returned to spawn empty-handed (distance: {distanceToSpawn:F2})");
                 hasReachedEnd = true;
                 OnEnemyReachedEnd?.Invoke(this);
-                EnemyManager.Instance?.OnEnemyReachedEnd(this);
+                if (EnemyManager.Instance != null)
+                {
+                    EnemyManager.Instance.OnEnemyReachedEnd(this);
+                }
                 Destroy(gameObject);
             }
         }
@@ -493,6 +513,34 @@ namespace TowerFusion
             }
             
             // Move towards target with separation applied
+            float currentSpeed = enemyData.moveSpeed * speedMultiplier;
+            float moveDistance = currentSpeed * Time.deltaTime;
+            transform.position += moveDirection * moveDistance;
+        }
+        
+        /// <summary>
+        /// Move using flow field direction with separation
+        /// </summary>
+        private void MoveUsingFlowField(Vector2Int flowDirection)
+        {
+            if (flowDirection == Vector2Int.zero)
+            {
+                // No valid flow direction, stay in place
+                return;
+            }
+            
+            // Convert flow direction to world direction
+            Vector3 moveDirection = new Vector3(flowDirection.x, flowDirection.y, 0f).normalized;
+            
+            // Apply separation force if enabled
+            if (enemyData.useSeparation)
+            {
+                Vector3 separationForce = CalculateSeparationForce();
+                // Blend flow direction with separation force
+                moveDirection = (moveDirection + separationForce).normalized;
+            }
+            
+            // Move in the flow direction
             float currentSpeed = enemyData.moveSpeed * speedMultiplier;
             float moveDistance = currentSpeed * Time.deltaTime;
             transform.position += moveDirection * moveDistance;
@@ -769,7 +817,7 @@ namespace TowerFusion
         #region Corn Stealing Behavior
         
         /// <summary>
-        /// Move towards corn storage
+        /// Move towards corn storage using flow field
         /// </summary>
         private void MoveTowardsCornStorage()
         {
@@ -781,17 +829,23 @@ namespace TowerFusion
                 return;
             }
             
-            Vector3 cornPosition = CornManager.Instance.GetCornStoragePosition();
             Vector3 previousPosition = transform.position;
             
-            // Use grid-aligned movement if GridManager is available
-            if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+            // Use flow field if available
+            if (FlowFieldManager.Instance != null && FlowFieldManager.Instance.IsReady())
             {
+                MoveUsingFlowField(FlowFieldManager.Instance.GetFlowToCorn(transform.position));
+            }
+            else if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+            {
+                // Fallback to grid-aligned movement
+                Vector3 cornPosition = CornManager.Instance.GetCornStoragePosition();
                 MoveTowardsPositionGridAligned(cornPosition);
             }
             else
             {
                 // Fallback to direct movement
+                Vector3 cornPosition = CornManager.Instance.GetCornStoragePosition();
                 Vector3 direction = (cornPosition - transform.position).normalized;
                 transform.position += direction * CurrentSpeed * Time.deltaTime;
             }
@@ -854,21 +908,55 @@ namespace TowerFusion
         /// </summary>
         private void ReturnToSpawn()
         {
-            // Use grid-aligned movement to return to spawn
-            MoveTowardsPositionGridAligned(spawnPoint);
+            Vector3 previousPosition = transform.position;
             
-            // Check if reached spawn
+            // Use flow field if available
+            if (FlowFieldManager.Instance != null && FlowFieldManager.Instance.IsReady())
+            {
+                MoveUsingFlowField(FlowFieldManager.Instance.GetFlowToSpawn(transform.position));
+            }
+            else if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
+            {
+                // Fallback to grid-aligned movement
+                MoveTowardsPositionGridAligned(spawnPoint);
+            }
+            else
+            {
+                // Fallback to direct movement
+                Vector3 direction = (spawnPoint - transform.position).normalized;
+                transform.position += direction * CurrentSpeed * Time.deltaTime;
+            }
+            
+            // Update sprite direction
+            Vector3 moveDirection = transform.position - previousPosition;
+            if (moveDirection.magnitude > 0.01f)
+            {
+                float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg;
+                angle = -angle; // Flip Y axis for Unity's coordinate system
+                currentMovementAngle = angle;
+                UpdateDirectionalSprite(currentMovementAngle);
+            }
+            
+            lastPosition = transform.position;
+            
+            // Check if reached spawn (increased radius for grid-aligned movement)
             float distanceToSpawn = Vector3.Distance(transform.position, spawnPoint);
-            if (distanceToSpawn < 0.5f) // Close enough to spawn
+            if (distanceToSpawn < 1.0f) // Increased from 0.5f for better detection
             {
                 // Successfully stole corn!
-                CornManager.Instance.RegisterCornSteal(this);
-                Debug.Log($"{name} successfully returned corn to spawn!");
+                if (CornManager.Instance != null)
+                {
+                    CornManager.Instance.RegisterCornSteal(this);
+                    Debug.Log($"{name} successfully returned corn to spawn! (distance: {distanceToSpawn:F2})");
+                }
                 
                 // Mark as complete and notify systems (like ReachEnd does)
                 hasReachedEnd = true;
                 OnEnemyReachedEnd?.Invoke(this);
-                EnemyManager.Instance?.OnEnemyReachedEnd(this);
+                if (EnemyManager.Instance != null)
+                {
+                    EnemyManager.Instance.OnEnemyReachedEnd(this);
+                }
                 
                 // Destroy enemy (successful theft)
                 Destroy(gameObject);

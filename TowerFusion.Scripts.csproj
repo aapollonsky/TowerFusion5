@@ -71,6 +71,7 @@
     <Compile Include="Assets/Scripts/Map/MapLibrary.cs" />
     <Compile Include="Assets/Scripts/Game/GameUI.cs" />
     <Compile Include="Assets/Scripts/Enemy/EnemyManager.cs" />
+    <Compile Include="Assets/Scripts/Map/FlowFieldManager.cs" />
     <Compile Include="Assets/Scripts/Wave/WaveManager.cs" />
     <Compile Include="Assets/Scripts/Enemy/Enemy.cs" />
     <Compile Include="Assets/Scripts/Game/GameManager.cs" />
@@ -84,6 +85,7 @@
     <Compile Include="Assets/Scripts/Tower/TowerTraitManager.cs" />
     <Compile Include="Assets/Scripts/Managers/TowerDefenseCoordinator.cs" />
     <Compile Include="Assets/Scripts/Effects/AutoDestroyParticleSystem.cs" />
+    <Compile Include="Assets/Scripts/Map/FlowField.cs" />
     <Compile Include="Assets/Scripts/Wave/WaveData.cs" />
     <Compile Include="Assets/Scripts/Tower/Tower.cs" />
     <Compile Include="Assets/Scripts/Game/CornStorage.cs" />
