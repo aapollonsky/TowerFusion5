@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace TowerFusion
 {
@@ -443,7 +444,7 @@ namespace TowerFusion
         #endregion
         
         /// <summary>
-        /// Move towards position using grid-aligned movement (horizontal/vertical only)
+        /// Move towards position using grid-aligned movement (horizontal/vertical only) with separation
         /// </summary>
         private void MoveTowardsPositionGridAligned(Vector3 targetPos)
         {
@@ -480,10 +481,65 @@ namespace TowerFusion
             // Get world position of next grid cell
             Vector3 nextGridCenter = grid.GridToWorld(nextGrid);
             
-            // Move towards next grid center
+            // Calculate base movement direction
+            Vector3 moveDirection = (nextGridCenter - currentPos).normalized;
+            
+            // Apply separation force if enabled
+            if (enemyData.useSeparation)
+            {
+                Vector3 separationForce = CalculateSeparationForce();
+                // Blend movement direction with separation force
+                moveDirection = (moveDirection + separationForce).normalized;
+            }
+            
+            // Move towards target with separation applied
             float currentSpeed = enemyData.moveSpeed * speedMultiplier;
             float moveDistance = currentSpeed * Time.deltaTime;
-            transform.position = Vector3.MoveTowards(currentPos, nextGridCenter, moveDistance);
+            transform.position += moveDirection * moveDistance;
+        }
+        
+        /// <summary>
+        /// Calculate separation force to avoid crowding with nearby enemies
+        /// </summary>
+        private Vector3 CalculateSeparationForce()
+        {
+            Vector3 separationForce = Vector3.zero;
+            int nearbyCount = 0;
+            
+            // Get all active enemies
+            List<Enemy> activeEnemies = EnemyManager.Instance?.GetActiveEnemies();
+            if (activeEnemies == null || activeEnemies.Count == 0)
+                return separationForce;
+            
+            // Check each nearby enemy
+            foreach (Enemy other in activeEnemies)
+            {
+                if (other == this || !other.IsAlive)
+                    continue;
+                
+                float distance = Vector3.Distance(transform.position, other.Position);
+                
+                // If within separation radius, add repulsion force
+                if (distance < enemyData.separationRadius && distance > 0.01f)
+                {
+                    // Direction away from the other enemy
+                    Vector3 awayDirection = (transform.position - other.Position).normalized;
+                    
+                    // Stronger force when closer (inverse square falloff)
+                    float forceMagnitude = enemyData.separationStrength * (1f - distance / enemyData.separationRadius);
+                    
+                    separationForce += awayDirection * forceMagnitude;
+                    nearbyCount++;
+                }
+            }
+            
+            // Average the separation force
+            if (nearbyCount > 0)
+            {
+                separationForce /= nearbyCount;
+            }
+            
+            return separationForce;
         }
         
         /// <summary>

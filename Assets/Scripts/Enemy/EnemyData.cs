@@ -197,6 +197,14 @@ namespace TowerFusion
         public Color enemyColor = Color.white;
         public Vector3 scale = Vector3.one;
         
+        [Header("Flocking/Separation")]
+        [Tooltip("Enable separation force to prevent clumping")]
+        public bool useSeparation = true;
+        [Tooltip("Radius within which enemies repel each other")]
+        [Range(0.1f, 5f)] public float separationRadius = 1f;
+        [Tooltip("Strength of separation force")]
+        [Range(0f, 10f)] public float separationStrength = 2f;
+        
         /// <summary>
         /// Calculate damage after resistances
         /// </summary>
