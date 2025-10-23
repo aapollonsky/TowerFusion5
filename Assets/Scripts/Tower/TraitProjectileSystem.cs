@@ -64,6 +64,9 @@ namespace TowerFusion
                 return;
             }
             
+            // Notify reactive defense system BEFORE creating projectile (same as Tower.Attack)
+            tower.OnTowerFired?.Invoke(tower, target);
+            
             // Instantiate projectile
             GameObject projectileObj = Instantiate(
                 trait.projectilePrefab,
