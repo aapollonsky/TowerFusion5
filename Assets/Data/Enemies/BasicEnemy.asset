@@ -24,7 +24,7 @@ MonoBehaviour:
     upLeft: {fileID: -992300700, guid: af1f24561d6bc44b685c0a7e00f5e726, type: 3}
     up: {fileID: -1298067419, guid: 6dab17c8f2cea4fc3a301a0ac936557e, type: 3}
     upRight: {fileID: -685175985, guid: 83c93c33f14c64b62915f1dd9493d0d5, type: 3}
-    useOnly4Directions: 0
+    useOnly4Directions: 1
     useAnimation: 0
     animationFrames:
       frameRate: 8
@@ -82,7 +82,6 @@ MonoBehaviour:
   isFast: 0
   isRegenerating: 0
   regenerationRate: 0
-  defaultRole: 0
   cornGrabDuration: 1
   cornCarrySpeedMultiplier: 0.8
   canAttackTowers: 1
@@ -92,3 +91,6 @@ MonoBehaviour:
   towerDetectionRange: 100
   enemyColor: {r: 1, g: 1, b: 1, a: 1}
   scale: {x: 1, y: 1, z: 1}
+  useSeparation: 0
+  separationRadius: 1.2
+  separationStrength: 2

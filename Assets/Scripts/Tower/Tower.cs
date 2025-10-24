@@ -4,6 +4,15 @@ using System.Collections;
 namespace TowerFusion
 {
     /// <summary>
+    /// Targeting priority for towers
+    /// </summary>
+    public enum TargetingPriority
+    {
+        DefendTowers,    // Prioritize enemies attacking towers (CounterattackingTower state)
+        ProtectCorn      // Prioritize enemies stealing corn (all other states)
+    }
+    
+    /// <summary>
     /// Individual tower behavior controller
     /// </summary>
     public class Tower : MonoBehaviour
@@ -25,6 +34,9 @@ namespace TowerFusion
         [Header("Health Bar")]
         [SerializeField] private Transform healthBarContainer;
         [SerializeField] private Transform healthBarFill;
+        
+        [Header("Targeting")]
+        [SerializeField] private TargetingPriority targetingPriority = TargetingPriority.DefendTowers;
         
         // Components
         private TowerTraitManager traitManager;
@@ -68,6 +80,7 @@ namespace TowerFusion
         public float CurrentHealth => currentHealth;
         public float MaxHealth => towerData?.maxHealth ?? 100f;
         public bool IsAlive => isAlive;
+        public TargetingPriority Priority => targetingPriority;
         
         private void Awake()
         {
@@ -632,6 +645,12 @@ namespace TowerFusion
             if (enemiesInRange.Count == 0)
                 return null;
             
+            // Apply targeting priority filtering
+            var priorityEnemies = FilterByPriority(enemiesInRange);
+            
+            // If we have priority targets, use them; otherwise fall back to all enemies
+            var targetPool = priorityEnemies.Count > 0 ? priorityEnemies : enemiesInRange;
+            
             // Select target based on targeting mode
             Enemy target = null;
             
@@ -639,17 +658,17 @@ namespace TowerFusion
             {
                 case TargetingMode.First:
                     // TODO: Implement path-based targeting
-                    target = enemiesInRange[0];
+                    target = targetPool[0];
                     break;
                     
                 case TargetingMode.Last:
                     // TODO: Implement path-based targeting
-                    target = enemiesInRange[enemiesInRange.Count - 1];
+                    target = targetPool[targetPool.Count - 1];
                     break;
                     
                 case TargetingMode.Closest:
                     float closestDistance = float.MaxValue;
-                    foreach (var enemy in enemiesInRange)
+                    foreach (var enemy in targetPool)
                     {
                         float distance = Vector3.Distance(transform.position, enemy.Position);
                         if (distance < closestDistance)
@@ -662,7 +681,7 @@ namespace TowerFusion
                     
                 case TargetingMode.Strongest:
                     float maxHealth = 0f;
-                    foreach (var enemy in enemiesInRange)
+                    foreach (var enemy in targetPool)
                     {
                         if (enemy.CurrentHealth > maxHealth)
                         {
@@ -674,7 +693,7 @@ namespace TowerFusion
                     
                 case TargetingMode.Weakest:
                     float minHealth = float.MaxValue;
-                    foreach (var enemy in enemiesInRange)
+                    foreach (var enemy in targetPool)
                     {
                         if (enemy.CurrentHealth < minHealth)
                         {
@@ -686,6 +705,41 @@ namespace TowerFusion
             }
             
             return target;
+        }
+        
+        /// <summary>
+        /// Filter enemies based on targeting priority
+        /// </summary>
+        private System.Collections.Generic.List<Enemy> FilterByPriority(System.Collections.Generic.List<Enemy> enemies)
+        {
+            var filtered = new System.Collections.Generic.List<Enemy>();
+            
+            switch (targetingPriority)
+            {
+                case TargetingPriority.DefendTowers:
+                    // Prioritize enemies attacking towers
+                    foreach (var enemy in enemies)
+                    {
+                        if (enemy.BehaviorState == Enemy.EnemyBehaviorState.CounterattackingTower)
+                        {
+                            filtered.Add(enemy);
+                        }
+                    }
+                    break;
+                    
+                case TargetingPriority.ProtectCorn:
+                    // Prioritize enemies stealing corn (any state except counterattacking)
+                    foreach (var enemy in enemies)
+                    {
+                        if (enemy.BehaviorState != Enemy.EnemyBehaviorState.CounterattackingTower)
+                        {
+                            filtered.Add(enemy);
+                        }
+                    }
+                    break;
+            }
+            
+            return filtered;
         }
         
         /// <summary>
@@ -1167,6 +1221,18 @@ namespace TowerFusion
             {
                 Die();
             }
+        }
+        
+        /// <summary>
+        /// Set targeting priority (called from UI)
+        /// </summary>
+        public void SetTargetingPriority(TargetingPriority priority)
+        {
+            targetingPriority = priority;
+            Debug.Log($"Tower {towerData.towerName} targeting priority set to: {priority}");
+            
+            // Force retarget on next frame
+            currentTarget = null;
         }
         
         /// <summary>

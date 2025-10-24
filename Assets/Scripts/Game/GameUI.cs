@@ -32,6 +32,7 @@ namespace TowerFusion.UI
         [SerializeField] private Button sellButton;
         [SerializeField] private Button assignTraitButton;
         [SerializeField] private TextMeshProUGUI upgradeButtonText;
+        [SerializeField] private TMPro.TMP_Dropdown targetingPriorityDropdown;
         
         [Header("Trait Selection")]
         [SerializeField] private GameObject traitCardDialog;
@@ -156,6 +157,18 @@ namespace TowerFusion.UI
             if (traitDoneButton != null)
             {
                 traitDoneButton.onClick.AddListener(AcceptTrait);
+            }
+            
+            // Initialize targeting priority dropdown
+            if (targetingPriorityDropdown != null)
+            {
+                targetingPriorityDropdown.ClearOptions();
+                targetingPriorityDropdown.AddOptions(new System.Collections.Generic.List<string> 
+                { 
+                    "Defend Towers", 
+                    "Protect Corn" 
+                });
+                targetingPriorityDropdown.onValueChanged.AddListener(OnTargetingPriorityChanged);
             }
             
             // Create tower building buttons
@@ -386,6 +399,13 @@ namespace TowerFusion.UI
                 }
             }
             
+            // Update targeting priority dropdown
+            if (targetingPriorityDropdown != null)
+            {
+                // Set dropdown value without triggering event
+                targetingPriorityDropdown.SetValueWithoutNotify((int)tower.Priority);
+            }
+            
             // Update trait assignment UI
             UpdateTraitAssignmentUI();
         }
@@ -446,6 +466,20 @@ namespace TowerFusion.UI
         private void SellTower()
         {
             TowerManager.Instance?.SellSelectedTower();
+        }
+        
+        /// <summary>
+        /// Targeting priority dropdown callback
+        /// </summary>
+        private void OnTargetingPriorityChanged(int value)
+        {
+            Tower selectedTower = TowerManager.Instance?.GetSelectedTower();
+            if (selectedTower != null)
+            {
+                TargetingPriority priority = (TargetingPriority)value;
+                selectedTower.SetTargetingPriority(priority);
+                Debug.Log($"Changed targeting priority to: {priority}");
+            }
         }
         
         /// <summary>

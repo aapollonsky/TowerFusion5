@@ -52,7 +52,7 @@ namespace TowerFusion
         private float lastTowerAttackTime;
         
         // Behavior state machine
-        private enum EnemyBehaviorState 
+        public enum EnemyBehaviorState 
         { 
             MovingToCorn, 
             GrabbingCorn, 
@@ -83,6 +83,7 @@ namespace TowerFusion
         public bool IsBrittle => isBrittle;
         public bool IsBurning => isBurning;
         public bool HasCorn => hasCorn;
+        public EnemyBehaviorState BehaviorState => behaviorState;
         
         private void Awake()
         {
