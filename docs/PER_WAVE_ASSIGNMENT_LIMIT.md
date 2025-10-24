@@ -2,35 +2,65 @@
 
 ## Overview
 
-The reactive defense system has been updated to implement a **per-wave assignment limit** for tower counterattackers. Each tower can be assigned up to 2 enemies to counterattack it during a wave. Once this limit is reached, the tower will not receive additional counterattackers until the next wave starts, even if the assigned enemies are killed.
+The reactive defense system implements **per-wave assignment limits** for tower counterattackers with two configurable constraints:
+
+1. **Per-Tower Limit:** Each tower can be assigned up to N enemies to counterattack it during a wave (default: 2)
+2. **Per-Wave Tower Limit:** Maximum M towers can be under counterattack per wave (default: 2, 0 = unlimited)
+
+Once these limits are reached, towers will not receive additional counterattackers until the next wave starts, even if assigned enemies are killed.
+
+## Configuration
+
+### Inspector Settings
+
+In the Unity Inspector, `TowerDefenseCoordinator` has two configurable fields:
+
+- **Max Counterattackers Per Tower** (default: 2)
+  - How many enemies each tower can be assigned per wave
+  - Once reached, that tower gets no more counterattackers this wave
+  
+- **Max Towers Under Attack Per Wave** (default: 2)
+  - Maximum number of towers that can receive counterattack assignments per wave
+  - Set to 0 for unlimited towers
+  - First N towers to fire get counterattackers, rest are protected
 
 ## Key Behavior
 
 ### Assignment Rules
-1. **Per-Wave Limit:** Each tower gets maximum 2 counterattackers per wave
-2. **No Replacements:** If assigned enemies die, they are NOT replaced
-3. **Wave Reset:** When a new wave starts, all tower counters reset to 0
-4. **Per-Tower Tracking:** Each tower has its own independent counter
+1. **Per-Tower Limit:** Each tower gets maximum N counterattackers per wave (default: 2)
+2. **Per-Wave Tower Limit:** Maximum M towers can be under attack per wave (default: 2)
+3. **No Replacements:** If assigned enemies die, they are NOT replaced
+4. **Wave Reset:** When a new wave starts, all counters reset to 0
+5. **Priority:** First towers to fire (and eligible) get counterattackers
 
-### Example Scenario
+### Example Scenario (Default Settings: 2 enemies per tower, 2 towers max)
 
 **Wave 1:**
 ```
-Tower A fires → 2 enemies assigned to counterattack Tower A
+Tower A fires → 2 enemies assigned to Tower A
+├─ Tower A now in towersUnderAttackThisWave (1/2)
 ├─ Enemy 1 killed → Tower A still has 2/2 assigned (no replacement)
 └─ Enemy 2 killed → Tower A still has 2/2 assigned (no replacement)
     └─ Tower A fires again → No new enemies assigned (quota reached)
 
-Tower B fires → 2 enemies assigned to counterattack Tower B
-├─ Both enemies alive and attacking
-└─ Tower B fires again → No new enemies assigned (quota reached)
+Tower B fires → 2 enemies assigned to Tower B
+├─ Tower B now in towersUnderAttackThisWave (2/2)
+└─ Both enemies alive and attacking
+
+Tower C fires → NO enemies assigned
+└─ Max towers under attack reached (2/2) - Tower C is protected!
+
+Tower D fires → NO enemies assigned
+└─ Max towers under attack reached (2/2) - Tower D is protected!
 ```
 
 **Wave 2 Starts:**
 ```
-All tower counters reset → Each tower can receive 2 new counterattackers
-Tower A fires → 2 new enemies assigned
-Tower B fires → 2 new enemies assigned
+All counters reset → Each tower can receive counterattackers again
+towersUnderAttackThisWave cleared → First 2 towers to fire get assignments
+Tower C fires first → 2 enemies assigned (now Tower C is under attack)
+Tower D fires second → 2 enemies assigned (now Tower D is under attack)
+Tower A fires third → NO assignment (max 2 towers already under attack)
 ```
 
 ## Implementation Details
@@ -39,11 +69,18 @@ Tower B fires → 2 new enemies assigned
 
 **Data Structures:**
 ```csharp
+// Configurable limits (Inspector-editable)
+[SerializeField] private int maxCounterattackersPerTower = 2;
+[SerializeField] private int maxTowersUnderAttackPerWave = 2; // 0 = unlimited
+
 // Track currently active assignments
 private Dictionary<Tower, List<Enemy>> towerAssignments;
 
 // Track total enemies assigned per tower this wave (does not decrease when enemies die)
 private Dictionary<Tower, int> totalAssignedCount;
+
+// Track which towers have been assigned enemies this wave
+private HashSet<Tower> towersUnderAttackThisWave;
 ```
 
 **Key Methods:**
@@ -52,6 +89,7 @@ private Dictionary<Tower, int> totalAssignedCount;
 Called when a new wave begins:
 - Clears all assignment lists
 - Resets all `totalAssignedCount` values to 0
+- Clears `towersUnderAttackThisWave` set
 - Logs reset message
 
 ```csharp
@@ -64,29 +102,40 @@ private void OnWaveStarted(int waveNumber)
     // Reset all counters to 0
     foreach (var tower in totalAssignedCount.Keys.ToList())
         totalAssignedCount[tower] = 0;
+    
+    // Clear towers under attack tracking
+    towersUnderAttackThisWave.Clear();
 }
 ```
 
 #### OnTowerFired(Tower tower, Enemy targetEnemy)
 Called when a tower fires:
-- Checks if tower has reached its assignment limit (`totalAssignedCount >= 2`)
-- If limit reached, logs message and returns (no new assignments)
-- If limit not reached, finds eligible enemies and assigns them
+- Checks if tower already has assignments this wave
+- **NEW:** Checks if max towers under attack limit reached (if not 0)
+- Checks if tower has reached its per-tower assignment limit
+- If limits not reached, finds eligible enemies and assigns them
 - Increments `totalAssignedCount[tower]` for each assignment
+- **NEW:** Adds tower to `towersUnderAttackThisWave` set
 
 ```csharp
 private void OnTowerFired(Tower tower, Enemy targetEnemy)
 {
-    int totalAssigned = totalAssignedCount[tower];
+    bool towerAlreadyUnderAttack = towersUnderAttackThisWave.Contains(tower);
     
-    if (totalAssigned >= MAX_COUNTERATTACKERS_PER_TOWER)
+    // Check max towers under attack (0 = unlimited)
+    if (!towerAlreadyUnderAttack && maxTowersUnderAttackPerWave > 0 
+        && towersUnderAttackThisWave.Count >= maxTowersUnderAttackPerWave)
     {
-        Debug.Log("Tower has already had 2 enemies assigned. No replacements.");
-        return;
+        return; // Tower is protected, no assignments
     }
     
-    // Assign enemies and increment counter
-    totalAssignedCount[tower]++;
+    // Check per-tower limit
+    if (totalAssignedCount[tower] >= maxCounterattackersPerTower)
+        return;
+    
+    // Assign enemies and add tower to set
+    // ...
+    towersUnderAttackThisWave.Add(tower);
 }
 ```
 
@@ -143,12 +192,19 @@ private void CancelCounterattack()
 
 ## Design Rationale
 
-### Why Per-Wave Limit?
+### Why Per-Wave Limits?
 
+**Per-Tower Limit (default: 2 enemies per tower):**
 1. **Strategic Depth:** Players must consider when to place/upgrade towers
 2. **Wave Pacing:** Ensures each wave has distinct counterattack opportunities
 3. **Predictability:** Players can anticipate max 2 enemies per tower per wave
 4. **Balance:** Prevents overwhelming tower with unlimited counterattackers
+
+**Per-Wave Tower Limit (default: 2 towers max):**
+1. **Defense Distribution:** Protects some towers, forces strategic placement
+2. **Priority System:** First towers to fire are most vulnerable
+3. **Late-Game Scaling:** With many towers, only subset gets attacked
+4. **Player Choice:** Players can choose which towers to activate first
 
 ### Why No Replacements?
 
@@ -172,7 +228,7 @@ Wave 1 starts
 Tower fires → Enemy A assigned (1/2)
 Tower fires → Enemy B assigned (2/2)
 Tower fires → No assignment (quota reached)
-✓ Expected: Max 2 enemies assigned
+✓ Expected: Max 2 enemies assigned per tower
 ```
 
 ### Scenario 2: Enemy Death
@@ -200,12 +256,43 @@ Tower B fires → 2 enemies assigned to Tower B (Tower B: 2/2)
 ✓ Expected: Each tower has independent counter
 ```
 
-### Scenario 5: Tower Destroyed
+### Scenario 5: Max Towers Under Attack Limit
+```
+Wave 1 starts (maxTowersUnderAttackPerWave = 2)
+Tower A fires → 2 enemies assigned (1/2 towers under attack)
+Tower B fires → 2 enemies assigned (2/2 towers under attack)
+Tower C fires → NO assignment (max towers reached)
+Tower D fires → NO assignment (max towers reached)
+✓ Expected: Only first 2 towers get counterattackers
+```
+
+### Scenario 6: Unlimited Towers Mode
+```
+Set maxTowersUnderAttackPerWave = 0
+Tower A fires → 2 enemies assigned
+Tower B fires → 2 enemies assigned
+Tower C fires → 2 enemies assigned
+Tower D fires → 2 enemies assigned
+... all towers get assignments (no limit)
+✓ Expected: All towers can receive counterattackers
+```
+
+### Scenario 7: Tower Destroyed
 ```
 Wave 1: Tower A gets 2 enemies assigned
 Enemies destroy Tower A
 Tower A removed from tracking
 ✓ Expected: No memory leaks, clean removal
+```
+
+### Scenario 8: Custom Configuration
+```
+Set maxCounterattackersPerTower = 3
+Set maxTowersUnderAttackPerWave = 1
+Wave starts
+Tower A fires → 3 enemies assigned (1/1 towers)
+Tower B fires → NO assignment (max 1 tower already under attack)
+✓ Expected: Configuration values respected
 ```
 
 ## Console Log Examples
@@ -219,14 +306,20 @@ TowerDefenseCoordinator: All towers can now receive up to 2 new counterattackers
 ### Assignment
 ```
 TowerDefenseCoordinator: Basic Tower fired at Goblin_03!
-TowerDefenseCoordinator: Assigned Goblin_05 to counterattack Basic Tower (total assigned: 1/2)
-TowerDefenseCoordinator: Assigned Goblin_07 to counterattack Basic Tower (total assigned: 2/2)
+TowerDefenseCoordinator: Assigned Goblin_05 to counterattack Basic Tower (total assigned: 1/2, towers under attack: 1/2)
+TowerDefenseCoordinator: Assigned Goblin_07 to counterattack Basic Tower (total assigned: 2/2, towers under attack: 1/2)
 ```
 
-### Quota Reached
+### Quota Reached (Per-Tower)
 ```
 TowerDefenseCoordinator: Basic Tower fired at Goblin_10!
 TowerDefenseCoordinator: Basic Tower has already had 2 enemies assigned (max 2). No replacements.
+```
+
+### Max Towers Limit Reached
+```
+TowerDefenseCoordinator: Cannon Tower fired at Goblin_15!
+TowerDefenseCoordinator: Max towers under attack (2) already reached. Cannot assign enemies to Cannon Tower.
 ```
 
 ### Enemy Death

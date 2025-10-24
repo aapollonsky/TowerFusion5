@@ -28,7 +28,8 @@ TowerFusion5 is a Unity 2D tower defense game where:
 ### Reactive Defense System
 - **All Enemies:** Start as stealers, move toward corn storage
 - **Counterattack Trigger:** When tower fires, up to 2 corn-less enemies assigned to attack it
-- **Per-Wave Limit:** Each tower gets maximum 2 counterattackers per wave (no replacements)
+- **Per-Wave Limits:** Each tower gets max 2 counterattackers per wave (configurable), max 2 towers under attack per wave (configurable)
+- **No Replacements:** Killed counterattackers are not replaced until next wave
 - **State Transition:** Assigned enemies switch from stealing to counterattacking tower
 
 ### State Machine

@@ -9,7 +9,12 @@ namespace TowerFusion
     /// </summary>
     public class TowerDefenseCoordinator : MonoBehaviour
     {
-        private const int MAX_COUNTERATTACKERS_PER_TOWER = 2;
+        [Header("Counterattack Configuration")]
+        [SerializeField] [Tooltip("Maximum enemies that can be assigned to counterattack each tower per wave")]
+        private int maxCounterattackersPerTower = 2;
+        
+        [SerializeField] [Tooltip("Maximum number of towers that can be under counterattack per wave (0 = unlimited)")]
+        private int maxTowersUnderAttackPerWave = 2;
         
         // Singleton instance
         public static TowerDefenseCoordinator Instance { get; private set; }
@@ -19,6 +24,9 @@ namespace TowerFusion
         
         // Track total number of enemies ever assigned to each tower (prevents refilling when enemies die)
         private Dictionary<Tower, int> totalAssignedCount = new Dictionary<Tower, int>();
+        
+        // Track which towers have been assigned enemies this wave
+        private HashSet<Tower> towersUnderAttackThisWave = new HashSet<Tower>();
         
         private void Awake()
         {
@@ -121,7 +129,10 @@ namespace TowerFusion
                 totalAssignedCount[tower] = 0;
             }
             
-            Debug.Log($"TowerDefenseCoordinator: All towers can now receive up to {MAX_COUNTERATTACKERS_PER_TOWER} new counterattackers this wave");
+            // Reset towers under attack tracking
+            towersUnderAttackThisWave.Clear();
+            
+            Debug.Log($"TowerDefenseCoordinator: All towers can now receive up to {maxCounterattackersPerTower} counterattackers. Max {maxTowersUnderAttackPerWave} towers can be attacked this wave.");
         }
         
         /// <summary>
@@ -138,17 +149,27 @@ namespace TowerFusion
                 totalAssignedCount[tower] = 0;
             }
             
+            // Check if this tower has already been assigned enemies this wave
+            bool towerAlreadyUnderAttack = towersUnderAttackThisWave.Contains(tower);
+            
+            // Check if we've reached the max towers under attack limit (0 = unlimited)
+            if (!towerAlreadyUnderAttack && maxTowersUnderAttackPerWave > 0 && towersUnderAttackThisWave.Count >= maxTowersUnderAttackPerWave)
+            {
+                Debug.Log($"TowerDefenseCoordinator: Max towers under attack ({maxTowersUnderAttackPerWave}) already reached. Cannot assign enemies to {tower.TowerData.towerName}.");
+                return;
+            }
+            
             // Check total assigned count (doesn't decrease when enemies die)
             int totalAssigned = totalAssignedCount[tower];
             
-            if (totalAssigned >= MAX_COUNTERATTACKERS_PER_TOWER)
+            if (totalAssigned >= maxCounterattackersPerTower)
             {
-                Debug.Log($"TowerDefenseCoordinator: {tower.TowerData.towerName} has already had {totalAssigned} enemies assigned (max {MAX_COUNTERATTACKERS_PER_TOWER}). No replacements.");
+                Debug.Log($"TowerDefenseCoordinator: {tower.TowerData.towerName} has already had {totalAssigned} enemies assigned (max {maxCounterattackersPerTower}). No replacements.");
                 return;
             }
             
             // Calculate how many more enemies we can assign based on lifetime total
-            int slotsAvailable = MAX_COUNTERATTACKERS_PER_TOWER - totalAssigned;
+            int slotsAvailable = maxCounterattackersPerTower - totalAssigned;
             
             // Find eligible enemies to counterattack
             List<Enemy> eligible = FindEligibleCounterattackers(tower);
@@ -177,7 +198,10 @@ namespace TowerFusion
                 totalAssignedCount[tower]++; // Increment lifetime total
                 assigned++;
                 
-                Debug.Log($"TowerDefenseCoordinator: Assigned {enemy.EnemyData.enemyName} to counterattack {tower.TowerData.towerName} (total assigned: {totalAssignedCount[tower]}/{MAX_COUNTERATTACKERS_PER_TOWER})");
+                // Mark this tower as under attack this wave
+                towersUnderAttackThisWave.Add(tower);
+                
+                Debug.Log($"TowerDefenseCoordinator: Assigned {enemy.EnemyData.enemyName} to counterattack {tower.TowerData.towerName} (total assigned: {totalAssignedCount[tower]}/{maxCounterattackersPerTower}, towers under attack: {towersUnderAttackThisWave.Count}/{maxTowersUnderAttackPerWave})");
             }
         }
         
