@@ -421,20 +421,28 @@ namespace TowerFusion
             }
             
             // Move towards tower
-            Vector3 previousPosition = transform.position;
-            
             if (GridManager.Instance != null && GridManager.Instance.IsInitialized)
             {
+                // MoveTowardsPositionGridAligned handles sprite direction internally
                 MoveTowardsPositionGridAligned(currentTowerTarget.Position);
             }
             else
             {
+                // Fallback: direct movement with manual sprite update
+                Vector3 previousPosition = transform.position;
                 Vector3 direction = (currentTowerTarget.Position - transform.position).normalized;
                 transform.position += direction * CurrentSpeed * Time.deltaTime;
+                
+                // Update sprite direction based on actual movement
+                Vector3 actualMovement = transform.position - previousPosition;
+                if (actualMovement.magnitude > 0.01f)
+                {
+                    float angle = Mathf.Atan2(actualMovement.y, actualMovement.x) * Mathf.Rad2Deg;
+                    angle = -angle; // Flip Y axis for Unity's coordinate system
+                    currentMovementAngle = angle;
+                    UpdateDirectionalSprite(currentMovementAngle);
+                }
             }
-            
-            // Update sprite direction
-            UpdateMovementDirection(previousPosition);
             
             // Check if in attack range
             float distanceToTower = Vector3.Distance(transform.position, currentTowerTarget.Position);
@@ -455,7 +463,7 @@ namespace TowerFusion
                     }
                 }
                 
-                // Face the tower while attacking
+                // Face the tower while attacking (stationary)
                 Vector3 directionToTower = (currentTowerTarget.Position - transform.position).normalized;
                 if (directionToTower.magnitude > 0.1f)
                 {
@@ -486,6 +494,9 @@ namespace TowerFusion
             {
                 return;
             }
+            
+            // Store previous position for direction calculation
+            Vector3 previousPosition = transform.position;
             
             // Calculate grid delta
             Vector2Int gridDelta = targetGrid - currentGrid;
@@ -522,6 +533,16 @@ namespace TowerFusion
             float currentSpeed = enemyData.moveSpeed * speedMultiplier;
             float moveDistance = currentSpeed * Time.deltaTime;
             transform.position += moveDirection * moveDistance;
+            
+            // Update sprite direction based on actual movement
+            Vector3 actualMovement = transform.position - previousPosition;
+            if (actualMovement.magnitude > 0.01f)
+            {
+                float angle = Mathf.Atan2(actualMovement.y, actualMovement.x) * Mathf.Rad2Deg;
+                angle = -angle; // Flip Y axis for Unity's coordinate system
+                currentMovementAngle = angle;
+                UpdateDirectionalSprite(currentMovementAngle);
+            }
         }
         
         /// <summary>
@@ -534,6 +555,9 @@ namespace TowerFusion
                 // No valid flow direction, stay in place
                 return;
             }
+            
+            // Store previous position for direction calculation
+            Vector3 previousPosition = transform.position;
             
             // Convert flow direction to world direction
             Vector3 moveDirection = new Vector3(flowDirection.x, flowDirection.y, 0f).normalized;
@@ -550,6 +574,16 @@ namespace TowerFusion
             float currentSpeed = enemyData.moveSpeed * speedMultiplier;
             float moveDistance = currentSpeed * Time.deltaTime;
             transform.position += moveDirection * moveDistance;
+            
+            // Update sprite direction based on actual movement
+            Vector3 actualMovement = transform.position - previousPosition;
+            if (actualMovement.magnitude > 0.01f)
+            {
+                float angle = Mathf.Atan2(actualMovement.y, actualMovement.x) * Mathf.Rad2Deg;
+                angle = -angle; // Flip Y axis for Unity's coordinate system
+                currentMovementAngle = angle;
+                UpdateDirectionalSprite(currentMovementAngle);
+            }
         }
         
         /// <summary>
