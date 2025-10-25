@@ -966,19 +966,19 @@ namespace TowerFusion
                 Vector3 holePosition = target.transform.position;
                 
                 // Instantly kill and destroy the hit enemy
-                Debug.Log($"<color=yellow>Killing enemy with overkill damage...</color>");
-                target.TakeDamage(target.MaxHealth * 100f, DamageType.Magic); // Overkill to ensure death
+                //Debug.Log($"<color=yellow>Killing enemy with overkill damage...</color>");
+                //target.TakeDamage(target.MaxHealth * 100f, DamageType.Magic); // Overkill to ensure death
                 
                 // Create hole at the enemy's position
                 Debug.Log($"<color=yellow>Creating black disk at {holePosition}...</color>");
                 CreateEarthHole(trait, holePosition);
                 
                 // Destroy the enemy GameObject immediately (it becomes the hole)
-                if (target != null && target.gameObject != null)
-                {
-                    Debug.Log($"<color=yellow>Destroying enemy GameObject in 0.1s...</color>");
-                    Destroy(target.gameObject, 0.1f); // Small delay to let damage register
-                }
+                //if (target != null && target.gameObject != null)
+                //{
+                //    Debug.Log($"<color=yellow>Destroying enemy GameObject in 0.1s...</color>");
+                //    Destroy(target.gameObject, 0.1f); // Small delay to let damage register
+                //}
                 
                 Debug.Log($"<color=magenta>═══ EARTH TRAIT COMPLETE ═══</color>");
             }
